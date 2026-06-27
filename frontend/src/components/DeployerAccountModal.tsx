@@ -67,10 +67,14 @@ export function DeployerAccountModal({ open, onClose }: Props) {
       } catch (e) {
         if (e instanceof ApiError && e.code === 'InvalidCredentials') {
           setError('AWS 拒绝了这对 AK/SK,请检查');
+          return;
+        } else if (e instanceof ApiError && e.code === 'NotConfigured') {
+          // 首次添加时还没有后端节点，跳过验证直接保存
+          verified = undefined;
         } else {
           setError(`验证失败:${(e as Error).message}`);
+          return;
         }
-        return;
       }
 
       await addDeployerAccount({
