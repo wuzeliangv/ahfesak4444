@@ -31,7 +31,7 @@ export function Homepage() {
   // --- Simulated EC2 State ---
   const [ec2Instances, setEc2Instances] = useState<MockEC2[]>([
     { id: 1, name: 'prod-web-us', region: 'us-east-1', flag: 'US', type: 't3.medium', status: 'Running', ip: '54.210.12.8' },
-    { id: 2, name: 'db-replica-sg', region: 'ap-southeast-1', flag: 'SG', type: 't4g.small', status: 'Stopped', ip: '18.140.23.95' },
+    { id: 2, name: 'db-replica-sg', region: 'ap-southeast-1', flag: 'SG', type: 't4g.small', status: 'Stopped', ip: '-' },
     { id: 3, name: 'api-gateway-hk', region: 'ap-east-1', flag: 'HK', type: 't3.small', status: 'Running', ip: '47.91.56.22' }
   ]);
 
@@ -40,14 +40,19 @@ export function Homepage() {
       if (inst.id !== id) return inst;
       if (inst.status === 'Running') {
         setTimeout(() => {
-          setEc2Instances(curr => curr.map(i => i.id === id ? { ...i, status: 'Stopped' } : i));
+          setEc2Instances(curr => curr.map(i => i.id === id ? { ...i, status: 'Stopped', ip: '-' } : i));
         }, 1200);
-        return { ...inst, status: 'Stopping' };
+        return { ...inst, status: 'Stopping', ip: '-' };
       } else if (inst.status === 'Stopped') {
+        const newIP = inst.region === 'us-east-1'
+          ? `3.235.${Math.floor(Math.random() * 254) + 1}.${Math.floor(Math.random() * 254) + 1}`
+          : inst.region === 'ap-southeast-1'
+          ? `18.139.${Math.floor(Math.random() * 254) + 1}.${Math.floor(Math.random() * 254) + 1}`
+          : `47.91.${Math.floor(Math.random() * 254) + 1}.${Math.floor(Math.random() * 254) + 1}`;
         setTimeout(() => {
-          setEc2Instances(curr => curr.map(i => i.id === id ? { ...i, status: 'Running' } : i));
+          setEc2Instances(curr => curr.map(i => i.id === id ? { ...i, status: 'Running', ip: newIP } : i));
         }, 1200);
-        return { ...inst, status: 'Starting' };
+        return { ...inst, status: 'Starting', ip: '分配中...' };
       }
       return inst;
     }));
@@ -401,9 +406,9 @@ export function Homepage() {
                       <span className="text-[10px] text-[var(--color-fg-muted)] mt-0.5">ap-east-1</span>
                       {/* Meter bar */}
                       <div className="mt-3 w-full bg-white/5 rounded-full h-1.5 overflow-hidden">
-                        <div className="bg-gradient-to-r from-blue-500 to-indigo-500 h-full w-[80%]" />
+                        <div className="bg-gradient-to-r from-blue-500 to-indigo-500 h-full w-[25%]" />
                       </div>
-                      <div className="mt-2 text-xs font-mono font-semibold text-[var(--color-fg-secondary)]">8 / 10 <span className="text-[10px] text-[var(--color-fg-muted)]">vCPUs</span></div>
+                      <div className="mt-2 text-xs font-mono font-semibold text-[var(--color-fg-secondary)]">2 / 8 <span className="text-[10px] text-[var(--color-fg-muted)]">vCPUs</span></div>
                     </div>
 
                     {/* Quota Orb Mock 3 */}
@@ -413,9 +418,9 @@ export function Homepage() {
                       <span className="text-[10px] text-[var(--color-fg-muted)] mt-0.5">ap-southeast-1</span>
                       {/* Meter bar */}
                       <div className="mt-3 w-full bg-white/5 rounded-full h-1.5 overflow-hidden">
-                        <div className="bg-gradient-to-r from-blue-500 to-indigo-500 h-full w-[37%]" />
+                        <div className="bg-gradient-to-r from-blue-500 to-indigo-500 h-full w-[25%]" />
                       </div>
-                      <div className="mt-2 text-xs font-mono font-semibold text-[var(--color-fg-secondary)]">12 / 32 <span className="text-[10px] text-[var(--color-fg-muted)]">vCPUs</span></div>
+                      <div className="mt-2 text-xs font-mono font-semibold text-[var(--color-fg-secondary)]">320 / 1280 <span className="text-[10px] text-[var(--color-fg-muted)]">vCPUs</span></div>
                     </div>
 
                   </div>
