@@ -88,7 +88,7 @@ export function Homepage() {
     <main className="relative flex min-h-screen w-full flex-col items-center justify-center overflow-x-hidden bg-[var(--color-bg-deep)] px-4 py-12 md:px-8 lg:px-16 animate-fadeIn">
       
       {/* ---- Backing Aurora Glow ---- */}
-      <div aria-hidden className="pointer-events-none absolute inset-0 select-none">
+      <div aria-hidden className="pointer-events-none absolute inset-0 select-none overflow-hidden">
         <div
           className="absolute -left-[10%] -top-[10%] size-[60vmax] rounded-full blur-[120px] transition-all duration-[4000ms] ease-in-out"
           style={{
