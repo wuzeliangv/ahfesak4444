@@ -175,7 +175,7 @@ export function Homepage() {
               <div>
                 <h3 className="font-semibold text-[var(--color-fg-primary)]">出口 IP 多样化</h3>
                 <p className="mt-1 text-sm text-[var(--color-fg-muted)]">
-                  一键在全球多区域自动化部署 Lambda Worker 节点，轻松避开 IP 限制，确保业务出站的高可用。
+                  一键在全球多区域自动化部署，轻松避开 IP 限制，确保业务出站的高可用。
                 </p>
               </div>
             </div>
