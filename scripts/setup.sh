@@ -113,10 +113,10 @@ step "2/8  安装系统依赖"
 export DEBIAN_FRONTEND=noninteractive
 
 # 基础工具
-if ! command -v curl &>/dev/null || ! command -v rsync &>/dev/null; then
-    info "安装基础工具..."
+if ! command -v curl &>/dev/null || ! command -v rsync &>/dev/null || ! command -v make &>/dev/null; then
+    info "安装基础工具 (包括 make)..."
     apt-get update -qq
-    apt-get install -y -qq curl rsync unzip git jq gnupg2 apt-transport-https >/dev/null 2>&1
+    apt-get install -y -qq curl rsync unzip git jq gnupg2 apt-transport-https make >/dev/null 2>&1
     ok "基础工具已安装"
 else
     ok "基础工具已存在"
