@@ -16,7 +16,7 @@
 
 import { useState, useMemo, type FormEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { AlertCircle, Check, X as XIcon, FileText, Zap, Loader2, Sparkles, MapPin } from 'lucide-react';
+import { AlertCircle, Check, X as XIcon, FileText, Zap, Loader2, Sparkles } from 'lucide-react';
 import { Modal } from './ui/Modal';
 import { Button } from './ui/Button';
 import { addAccount, type AccountInput } from '@/lib/vault';
@@ -160,7 +160,7 @@ export function BulkAddModal({ open, onClose }: Props) {
             accountCreatedAt: v.created_at,
           };
           accountId = v.account_id;
-          iamAlias = v.alias;
+          iamAlias = v.alias ?? undefined;
         } catch (verr) {
           if (verr instanceof ApiError && verr.code === 'NotConfigured') {
             // No backend yet -> bypass validation and add blindly
