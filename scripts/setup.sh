@@ -219,23 +219,9 @@ fi
 export PATH="$HOME/.local/bin:/usr/local/bin:$PATH"
 
 # =============================================================================
-# 3. AWS 凭证检查
+# 3. 准备部署环境 (构建 Lambda 产物)
 # =============================================================================
-step "3/8  检查 AWS 凭证"
-
-if aws sts get-caller-identity &>/dev/null; then
-    AWS_ACCOUNT=$(aws sts get-caller-identity --query 'Account' --output text)
-    AWS_ARN=$(aws sts get-caller-identity --query 'Arn' --output text)
-    ok "AWS 凭证有效 — 账号: ${AWS_ACCOUNT}"
-    info "身份: ${AWS_ARN}"
-else
-    die "AWS 凭证未配置或无效，请先运行 'aws configure'"
-fi
-
-# =============================================================================
-# 4. 部署后端 Lambda
-# =============================================================================
-step "4/8  部署后端 Lambda"
+step "3/6  准备环境与构建 Lambda 产物"
 
 cd "$BACKEND_DIR"
 
@@ -258,61 +244,21 @@ fi
 info "同步 Python 依赖..."
 uv sync --quiet 2>/dev/null || true
 
-# SAM 构建
+# SAM 构建 (只构建不部署，部署将由用户在 UI 中手动完成)
 info "SAM 构建中..."
 sam build --cached 2>&1 | tail -5
-
-# SAM 部署
-info "SAM 部署中..."
-if [[ -f samconfig.toml ]] && grep -q "parameter_overrides" samconfig.toml 2>/dev/null; then
-    # samconfig.toml 已有完整配置（非首次部署）
-    sam deploy --no-confirm-changeset --no-fail-on-empty-changeset 2>&1 | tail -15
-else
-    # 首次部署，写入参数
-    sam deploy \
-        --stack-name aws-panel \
-        --region "$AWS_REGION" \
-        --capabilities CAPABILITY_IAM \
-        --resolve-s3 \
-        --s3-prefix aws-panel \
-        --no-confirm-changeset \
-        --no-fail-on-empty-changeset \
-        --parameter-overrides \
-            "ApiKey=${API_KEY}" \
-            "CorsAllowedOrigin=${PANEL_URL}" \
-        2>&1 | tail -15
-fi
-
-# 获取 API URL
-API_URL=$(aws cloudformation describe-stacks \
-    --stack-name aws-panel \
-    --region "$AWS_REGION" \
-    --query 'Stacks[0].Outputs[?OutputKey==`ApiUrl`].OutputValue' \
-    --output text 2>/dev/null || true)
-
-if [[ -n "$API_URL" ]]; then
-    echo -n "$API_URL" > .api-url
-    ok "后端已部署: ${API_URL}"
-else
-    # 尝试从已有文件读取
-    if [[ -f .api-url ]]; then
-        API_URL=$(cat .api-url)
-        warn "无法从 CloudFormation 获取 URL，使用已有值: ${API_URL}"
-    else
-        die "无法获取 API URL，请检查 CloudFormation 栈状态"
-    fi
-fi
+ok "SAM 构建完成，部署产物已就绪"
 
 # =============================================================================
-# 5. 配置并构建前端
+# 4. 配置并构建前端
 # =============================================================================
-step "5/8  构建前端"
+step "4/6  构建前端"
 
 cd "$FRONTEND_DIR"
 
-# 写入 .env.local
+# 写入空的 .env.local (不需要固定 API URL，完全走动态 Worker 节点)
 cat > .env.local <<EOF
-VITE_API_URL=${API_URL}
+VITE_API_URL=
 EOF
 ok "已写入 .env.local"
 
@@ -330,9 +276,9 @@ npm run build 2>&1 | tail -5
 ok "前端构建完成"
 
 # =============================================================================
-# 6. 配置 Caddy
+# 5. 配置 Caddy
 # =============================================================================
-step "6/8  配置 Caddy + TLS"
+step "5/6  配置 Caddy + TLS"
 
 # 创建 Web 目录
 mkdir -p "$WEB_ROOT"
@@ -404,9 +350,9 @@ systemctl restart caddy
 ok "Caddy 已启动 (TLS 证书将自动申请)"
 
 # =============================================================================
-# 7. 配置 Deployer 守护进程
+# 6. 配置 Deployer 守护进程
 # =============================================================================
-step "7/8  配置 Deployer 守护进程"
+step "6/6  配置 Deployer 守护进程"
 
 # ─── 配置 Telegram Bot ───
 REGISTRY_DIR="/root/.aws-panel"
@@ -484,9 +430,9 @@ systemctl restart aws-panel-deployer
 ok "Deployer 守护进程已启动"
 
 # =============================================================================
-# 8. 健康检查
+# 健康检查
 # =============================================================================
-step "8/8  最终健康检查"
+step "最终健康检查"
 
 echo ""
 
@@ -512,13 +458,6 @@ else
     warn "Deployer HTTP  — 尚未就绪（可能还在启动中）"
 fi
 
-# Lambda 后端健康检查
-if curl -sf "${API_URL}/health" >/dev/null 2>&1; then
-    ok "Lambda 后端    — 响应正常"
-else
-    warn "Lambda 后端    — 首次冷启动可能较慢，稍后自动就绪"
-fi
-
 # =============================================================================
 # 完成
 # =============================================================================
@@ -528,16 +467,14 @@ echo -e "${GREEN}${BOLD}  ✅ AWS Panel 部署完成！${NC}"
 echo -e "${GREEN}${BOLD}════════════════════════════════════════════════════════════════${NC}"
 echo ""
 echo -e "  🌐 面板地址:    ${BOLD}${PANEL_URL}${NC}"
-echo -e "  🔧 后端 API:    ${BOLD}${API_URL}${NC}"
 echo -e "  🔑 API Key:     ${BOLD}${API_KEY:0:8}...${NC} (完整内容: backend/.api-key)"
 echo ""
 echo -e "  📋 常用命令:"
 echo -e "     查看 Caddy 日志:     ${CYAN}journalctl -u caddy -f${NC}"
 echo -e "     查看 Deployer 日志:  ${CYAN}journalctl -u aws-panel-deployer -f${NC}"
-echo -e "     查看 Lambda 日志:    ${CYAN}cd backend && make logs${NC}"
 echo -e "     重新部署前端:        ${CYAN}bash scripts/deploy-frontend.sh${NC}"
-echo -e "     重新部署后端:        ${CYAN}cd backend && make deploy${NC}"
 echo ""
 echo -e "  ⚠️  首次访问时，Caddy 需要几秒钟申请 TLS 证书。"
 echo -e "     如果使用 Telegram 认证，请先在 Deployer 中配置 Bot Token。"
+echo -e "     进入面板后，请在【Lambda 节点】页面输入凭证，部署您的第一个 Worker 节点！"
 echo ""
