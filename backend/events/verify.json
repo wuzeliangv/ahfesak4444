@@ -1,0 +1,19 @@
+{
+  "version": "2.0",
+  "routeKey": "POST /accounts/verify",
+  "rawPath": "/accounts/verify",
+  "headers": {
+    "content-type": "application/json",
+    "x-api-key": "local-dev-key-CHANGE-ME-1234567890abcdef"
+  },
+  "requestContext": {
+    "http": {
+      "method": "POST",
+      "path": "/accounts/verify",
+      "sourceIp": "127.0.0.1"
+    },
+    "requestId": "local-test-2"
+  },
+  "body": "{\"credentials\":{\"access_key\":\"REPLACE_AK\",\"secret_key\":\"REPLACE_SK\"}}",
+  "isBase64Encoded": false
+}

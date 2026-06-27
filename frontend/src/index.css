@@ -1,0 +1,244 @@
+@import "tailwindcss";
+
+/* ========================================================================= */
+/* "Liquid Glass" — Apple-inspired frosted glass + soft neumorphism.         */
+/*                                                                           */
+/* DARK is the default ("Midnight Glass"); a LIGHT override ("Clear Glass")  */
+/* kicks in under <html data-theme="light">. Every component references      */
+/* these tokens (var(--color-*)) and the glass-* utilities, so the entire    */
+/* UI follows whatever's active.                                             */
+/* ========================================================================= */
+@theme {
+  /* Surface palette — near-black faint-blue page, translucent elevated glass */
+  --color-bg-base:        oklch(0.20 0.014 265);
+  --color-bg-deep:        oklch(0.17 0.012 265);
+  --color-bg-elev:        oklch(0.27 0.016 265 / 0.55);
+
+  /* Text palette — luminous near-white → muted slate */
+  --color-fg-primary:     oklch(0.97 0.006 270);
+  --color-fg-secondary:   oklch(0.77 0.016 270);
+  --color-fg-muted:       oklch(0.60 0.018 270);
+
+  /* Accent — Apple blue, bright on dark */
+  --color-accent-300:     oklch(0.82 0.11 250);
+  --color-accent-500:     oklch(0.70 0.16 252);
+  --color-accent-600:     oklch(0.63 0.17 254);
+
+  /* Status — Apple system colors (green / orange / red) */
+  --color-status-running: oklch(0.80 0.17 150);
+  --color-status-stopped: oklch(0.62 0.016 270);
+  --color-status-warn:    oklch(0.83 0.14 78);
+  --color-status-error:   oklch(0.68 0.20 22);
+
+  /* Hairline glass edge — white at low opacity */
+  --color-border-glass:   oklch(1 0 0 / 0.12);
+
+  /* Radii — generous, Apple-style */
+  --radius-card: 1.5rem;
+
+  /* Soft, deep, diffuse shadow with a glass top-highlight */
+  --shadow-glass:
+    inset 0 1px 0 oklch(1 0 0 / 0.10),
+    0 2px 6px -3px oklch(0 0 0 / 0.40),
+    0 24px 56px -28px oklch(0 0 0 / 0.78);
+
+  /* Fonts — system stack resolves to SF Pro on Apple devices */
+  --font-sans: -apple-system, BlinkMacSystemFont, ui-sans-serif, system-ui,
+               "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans SC", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+}
+
+/* ------------------------------------------------------------------------- */
+/* Theme-switchable surface backings (dark defaults). Not Tailwind tokens —  */
+/* they drive the page mesh + frosted-glass utilities and flip in light.     */
+/* ------------------------------------------------------------------------- */
+:root {
+  --page-bg:
+    radial-gradient(1200px 760px at 84% -10%, oklch(0.62 0.17 262 / 0.30), transparent 60%),
+    radial-gradient(980px 720px at -10% 110%, oklch(0.60 0.13 210 / 0.24), transparent 60%),
+    radial-gradient(760px 560px at 50% 48%, oklch(0.55 0.12 300 / 0.14), transparent 72%);
+
+  /* Frosted glass surfaces */
+  --glass-bg: linear-gradient(
+    155deg,
+    oklch(0.30 0.028 265 / 0.62) 0%,
+    oklch(0.22 0.026 268 / 0.50) 100%
+  );
+  --glass-panel-bg: linear-gradient(
+    155deg,
+    oklch(0.31 0.030 265 / 0.50) 0%,
+    oklch(0.24 0.026 268 / 0.40) 100%
+  );
+  --glass-input-bg: oklch(0.18 0.020 265 / 0.55);
+
+  /* Neumorphic inset for inputs (pressed-in feel) */
+  --inset-soft:
+    inset 0 1px 2px oklch(0 0 0 / 0.45),
+    inset 0 -1px 0 oklch(1 0 0 / 0.05);
+
+  --scrollbar-thumb: oklch(0.44 0.030 265);
+
+  /* Opaque popover/dropdown surface — menus must not bleed content through */
+  --color-bg-popover: oklch(0.25 0.018 265);
+
+  --blur-glass: 22px;
+  --blur-panel: 18px;
+}
+
+/* ------------------------------------------------------------------------- */
+/* LIGHT — "Clear Glass": near-white mesh, translucent white glass, soft     */
+/* neumorphic shadows, Apple blue accent.                                    */
+/* ------------------------------------------------------------------------- */
+html[data-theme="light"] {
+  --color-bg-base:        oklch(0.975 0.006 265);
+  --color-bg-deep:        oklch(0.962 0.008 265);
+  --color-bg-elev:        oklch(1 0 0 / 0.66);
+
+  --color-fg-primary:     oklch(0.27 0.015 270);
+  --color-fg-secondary:   oklch(0.48 0.016 270);
+  --color-fg-muted:       oklch(0.62 0.014 270);
+
+  --color-accent-300:     oklch(0.64 0.16 250);
+  --color-accent-500:     oklch(0.58 0.19 252);
+  --color-accent-600:     oklch(0.52 0.20 254);
+
+  --color-status-running: oklch(0.68 0.16 150);
+  --color-status-stopped: oklch(0.66 0.014 270);
+  --color-status-warn:    oklch(0.70 0.15 70);
+  --color-status-error:   oklch(0.60 0.22 25);
+
+  --color-border-glass:   oklch(0.40 0.02 270 / 0.12);
+
+  /* Soft neumorphic shadow — diffuse, low-contrast, with white top edge */
+  --shadow-glass:
+    inset 0 1px 0 oklch(1 0 0 / 0.85),
+    0 2px 8px -3px oklch(0.30 0.04 270 / 0.12),
+    0 20px 48px -24px oklch(0.30 0.05 270 / 0.30);
+
+  --page-bg:
+    radial-gradient(1200px 760px at 82% -12%, oklch(0.74 0.13 262 / 0.22), transparent 60%),
+    radial-gradient(940px 700px at -10% 112%, oklch(0.78 0.11 200 / 0.20), transparent 60%),
+    radial-gradient(720px 540px at 48% 50%, oklch(0.82 0.10 330 / 0.16), transparent 72%);
+
+  --glass-bg: linear-gradient(
+    155deg,
+    oklch(1 0 0 / 0.78) 0%,
+    oklch(1 0 0 / 0.62) 100%
+  );
+  --glass-panel-bg: linear-gradient(
+    155deg,
+    oklch(1 0 0 / 0.70) 0%,
+    oklch(1 0 0 / 0.54) 100%
+  );
+  --glass-input-bg: oklch(1 0 0 / 0.80);
+
+  --inset-soft:
+    inset 0 1px 2px oklch(0.30 0.04 270 / 0.10),
+    inset 0 -1px 0 oklch(1 0 0 / 0.70);
+
+  --scrollbar-thumb: oklch(0.78 0.02 270);
+  --color-bg-popover: oklch(1 0 0);
+}
+
+/* Global background — mesh wash so frosted cards have something to refract */
+html, body, #root {
+  height: 100%;
+  background: var(--color-bg-deep);
+  color: var(--color-fg-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.01em;
+}
+
+body {
+  background-image: var(--page-bg);
+  background-attachment: fixed;
+}
+
+html, body { transition: background-color 240ms ease; }
+
+/* ------------------------------------------------------------------------- */
+/* Frosted glass utilities                                                   */
+/* ------------------------------------------------------------------------- */
+
+/* Primary frosted card — modals, login shell, prominent panels */
+@utility glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--blur-glass)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--blur-glass)) saturate(180%);
+  border: 1px solid var(--color-border-glass);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-glass);
+}
+
+/* Lighter glass — content cards (account/instance cards) */
+@utility glass-panel {
+  background: var(--glass-panel-bg);
+  backdrop-filter: blur(var(--blur-panel)) saturate(170%);
+  -webkit-backdrop-filter: blur(var(--blur-panel)) saturate(170%);
+  border: 1px solid var(--color-border-glass);
+  border-radius: 1.25rem;
+  box-shadow: var(--shadow-glass);
+  transition: border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+}
+
+/* Neumorphic frosted input */
+@utility glass-input {
+  background: var(--glass-input-bg);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--color-border-glass);
+  border-radius: 0.875rem;
+  color: var(--color-fg-primary);
+  box-shadow: var(--inset-soft);
+  transition: border-color 130ms ease, box-shadow 130ms ease;
+
+  &:focus-within {
+    border-color: var(--color-accent-500);
+    box-shadow:
+      var(--inset-soft),
+      0 0 0 3.5px color-mix(in oklab, var(--color-accent-500) 24%, transparent);
+  }
+}
+
+/* Scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+*::-webkit-scrollbar           { width: 8px; height: 8px; }
+*::-webkit-scrollbar-thumb     { background: var(--scrollbar-thumb); border-radius: 999px; }
+*::-webkit-scrollbar-track     { background: transparent; }
+
+/* Modal / popover entrance */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Login hero — slow floating glow orbs */
+@keyframes float {
+  0%, 100% { transform: translate(0, 0); }
+  50%      { transform: translate(20px, -24px); }
+}
+
+/* Toast slide-in from the right edge */
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ------------------------------------------------------------------------- */
+/* Loading effect — icons "fill from bottom" like water rising.              */
+/* ------------------------------------------------------------------------- */
+@keyframes liquidFill {
+  0%   { clip-path: inset(100% 0 0 0); opacity: 0; }
+  15%  { clip-path: inset(100% 0 0 0); opacity: 1; }
+  72%  { clip-path: inset(0 0 0 0);    opacity: 1; }
+  100% { clip-path: inset(0 0 0 0);    opacity: 0; }
+}
+
+button[data-loading="true"] svg {
+  animation: liquidFill 1.4s ease-in-out infinite;
+}

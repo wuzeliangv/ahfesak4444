@@ -1,0 +1,114 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: AWS Panel — multi-account control plane (Lambda + HTTP API)
+
+# -----------------------------------------------------------------------------
+# Parameters
+# -----------------------------------------------------------------------------
+Parameters:
+  ApiKey:
+    Type: String
+    NoEcho: true
+    MinLength: 16
+    Description: >-
+      Shared secret the frontend sends as x-api-key on every request.
+      Generate with: openssl rand -hex 32
+  CorsAllowedOrigin:
+    Type: String
+    Default: "*"
+    Description: >-
+      Origin allowed by CORS. For production, set to your frontend URL
+      (e.g. https://panel.example.com). Default '*' is fine while developing.
+  LogRetentionDays:
+    Type: Number
+    Default: 7
+    AllowedValues: [1, 3, 5, 7, 14, 30, 60, 90]
+    Description: Days to keep CloudWatch Logs for the function.
+
+# -----------------------------------------------------------------------------
+# Globals
+# -----------------------------------------------------------------------------
+Globals:
+  Function:
+    Runtime: python3.12
+    Architectures:
+      - arm64                         # Graviton — 20% cheaper, faster cold start
+    MemorySize: 512                   # CPU scales with memory; 512 is sweet spot
+    Timeout: 30                       # HTTP API integration ceiling
+    Environment:
+      Variables:
+        PANEL_API_KEY: !Ref ApiKey
+        PYTHONUNBUFFERED: "1"
+    Tracing: Active                   # X-Ray for cold-start + region fan-out visibility
+
+# -----------------------------------------------------------------------------
+# Resources
+# -----------------------------------------------------------------------------
+Resources:
+
+  # ---------- HTTP API ------------------------------------------------------
+  PanelApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: $default                # default stage = no path prefix in URL
+      CorsConfiguration:
+        AllowOrigins:
+          - !Ref CorsAllowedOrigin
+        AllowMethods:
+          - GET
+          - POST
+          - OPTIONS
+        AllowHeaders:
+          - Content-Type
+          - X-Api-Key
+        MaxAge: 600
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 50
+        ThrottlingRateLimit: 25       # personal use — generous but bounded
+
+  # ---------- Lambda Function -----------------------------------------------
+  PanelFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile           # use our Makefile target for clean build
+    Properties:
+      FunctionName: aws-panel-api
+      CodeUri: .
+      Handler: src.handlers.api.handler
+      Description: AWS Panel API — routes all /v1/* requests
+      Events:
+        Root:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref PanelApi
+            Path: /
+            Method: ANY
+        Proxy:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref PanelApi
+            Path: /{proxy+}
+            Method: ANY
+
+  # ---------- CloudWatch Logs (explicit so we control retention) ------------
+  PanelFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${PanelFunction}
+      RetentionInDays: !Ref LogRetentionDays
+
+# -----------------------------------------------------------------------------
+# Outputs
+# -----------------------------------------------------------------------------
+Outputs:
+  ApiUrl:
+    Description: Base URL for the panel API (frontend points here)
+    Value: !Sub https://${PanelApi}.execute-api.${AWS::Region}.amazonaws.com
+    Export:
+      Name: !Sub ${AWS::StackName}-ApiUrl
+  FunctionName:
+    Description: Lambda function name (for log tailing)
+    Value: !Ref PanelFunction
+  Region:
+    Description: Deploy region
+    Value: !Ref AWS::Region

@@ -1,0 +1,13 @@
+{
+  "name": "aws-panel-deployer",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local deployer daemon — drives sam to deploy/destroy panel worker Lambdas. Zero runtime dependencies.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

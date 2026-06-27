@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.python-version
+*.egg-info/
+
+# uv
+.uv-cache/
+
+# AWS / SAM
+.aws-sam/
+samconfig.toml
+*.zip
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Secrets — NEVER commit
+.env
+.env.*
+credentials.json
+*.pem
+*.key
+
+# Frontend
+node_modules/
+dist/
+build/
+
+# SAM secrets — samconfig may contain ApiKey after first guided deploy
+samconfig.toml
+env.json
+.api-key
+.api-url
+.deploy-info.md
+
+# Local data
+data/
+*.sqlite3
+*.db
