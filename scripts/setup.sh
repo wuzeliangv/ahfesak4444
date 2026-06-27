@@ -45,14 +45,41 @@ ask()     { echo -en "${BOLD}$*${NC}"; }
 
 die() { err "$*"; exit 1; }
 
+# ─── 检查 root ───────────────────────────────────────────────────────────────
+[[ $EUID -eq 0 ]] || die "请使用 root 用户运行此脚本"
+
+# ─── 远程执行引导 (比如 bash <(curl ...) 运行) ──────────────────────────────────
+if [[ ! -d "backend" || ! -d "frontend" || ! -d "deployer" ]]; then
+    step "0/8  检测到远程管道执行，开始引导下载项目"
+    
+    # 确保 Git 已安装
+    if ! command -v git &>/dev/null; then
+        info "安装 Git..."
+        export DEBIAN_FRONTEND=noninteractive
+        apt-get update -qq && apt-get install -y -qq git >/dev/null 2>&1
+    fi
+    
+    CLONE_DIR="/root/aws-panel"
+    if [[ -d "$CLONE_DIR" ]]; then
+        info "目录 $CLONE_DIR 已存在，更新代码中..."
+        cd "$CLONE_DIR"
+        git fetch --all && git reset --hard origin/main
+    else
+        info "克隆仓库到 $CLONE_DIR ..."
+        git clone https://github.com/wuzeliangv/ahfesak4444.git "$CLONE_DIR"
+        cd "$CLONE_DIR"
+    fi
+    
+    info "拉取成功，即将交接本地执行..."
+    exec bash scripts/setup.sh "$@"
+    exit 0
+fi
+
 # 项目根目录（脚本在 scripts/ 下）
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BACKEND_DIR="${REPO_ROOT}/backend"
 FRONTEND_DIR="${REPO_ROOT}/frontend"
 DEPLOYER_DIR="${REPO_ROOT}/deployer"
-
-# ─── 检查 root ───────────────────────────────────────────────────────────────
-[[ $EUID -eq 0 ]] || die "请使用 root 用户运行此脚本"
 
 # ─── 收集配置 ─────────────────────────────────────────────────────────────────
 step "1/8  收集配置参数"
