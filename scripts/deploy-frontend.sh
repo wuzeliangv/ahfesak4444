@@ -22,4 +22,4 @@ chmod -R o-rwx "${DST}"
 echo ">>> Verifying Caddy is healthy"
 systemctl is-active caddy
 
-echo ">>> Done. https://aws.se.sd/"
+echo ">>> Done."
