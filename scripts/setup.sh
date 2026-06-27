@@ -189,9 +189,16 @@ if command -v sam &>/dev/null; then
     ok "SAM CLI $(sam --version | awk '{print $NF}') 已安装"
 else
     info "安装 AWS SAM CLI..."
-    pip3 install --user aws-sam-cli >/dev/null 2>&1 || \
-        uv pip install --system aws-sam-cli >/dev/null 2>&1
-    export PATH="$HOME/.local/bin:$PATH"
+    ARCH=$(uname -m)
+    if [[ "$ARCH" == "aarch64" ]]; then
+        curl -fsSL "https://github.com/aws/aws-sam-cli/releases/latest/download/aws-sam-cli-linux-arm64.zip" -o /tmp/aws-sam-cli.zip
+    else
+        curl -fsSL "https://github.com/aws/aws-sam-cli/releases/latest/download/aws-sam-cli-linux-x86_64.zip" -o /tmp/aws-sam-cli.zip
+    fi
+    mkdir -p /tmp/sam-installation
+    unzip -qo /tmp/aws-sam-cli.zip -d /tmp/sam-installation
+    /tmp/sam-installation/install --update >/dev/null 2>&1
+    rm -rf /tmp/aws-sam-cli.zip /tmp/sam-installation
     ok "SAM CLI 已安装"
 fi
 
