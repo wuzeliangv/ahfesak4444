@@ -133,7 +133,17 @@ aws-panel/
 - **AWS CLI** v2
 - 一台带公网 IP 的服务器（推荐 Oracle Cloud ARM）
 
-### 1. 部署后端
+### ⚡ 一键快捷部署
+
+在装有 Debian/Ubuntu 的全新服务器上，你可以运行以下命令直接进行一键部署。脚本会自动克隆项目、安装所有系统依赖（Caddy, Node, SAM, Python 等）、部署后端并配置守护进程：
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/wuzeliangv/ahfesak4444/main/scripts/setup.sh)
+```
+
+### 🛠️ 分步手动部署
+
+#### 1. 部署后端
 
 ```bash
 cd backend
