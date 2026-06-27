@@ -401,6 +401,49 @@ ok "Caddy 已启动 (TLS 证书将自动申请)"
 # =============================================================================
 step "7/8  配置 Deployer 守护进程"
 
+# ─── 配置 Telegram Bot ───
+REGISTRY_DIR="/root/.aws-panel"
+mkdir -p "$REGISTRY_DIR"
+chmod 700 "$REGISTRY_DIR"
+
+CONFIG_FILE="${REGISTRY_DIR}/deployer-config.json"
+TG_TOKEN=""
+TG_CHAT=""
+
+if [[ ! -f "$CONFIG_FILE" ]]; then
+    ask "是否现在配置 Telegram Bot（用于获取后台登录链接）？ [Y/n]: "
+    read -r CONFIRM_TG
+    CONFIRM_TG="${CONFIRM_TG:-y}"
+    
+    if [[ "$CONFIRM_TG" =~ ^[Yy]$ ]]; then
+        while [[ -z "$TG_TOKEN" ]]; do
+            ask "请输入 Telegram Bot Token (例如 123456:ABC-DEF...): "
+            read -r TG_TOKEN
+        done
+        
+        while [[ -z "$TG_CHAT" ]]; do
+            ask "请输入 Telegram Chat ID (例如 987654321): "
+            read -r TG_CHAT
+        done
+        
+        # 写入配置文件
+        cat > "$CONFIG_FILE" <<JSON
+{
+  "telegram": {
+    "botToken": "${TG_TOKEN}",
+    "chatId": "${TG_CHAT}"
+  }
+}
+JSON
+        chmod 600 "$CONFIG_FILE"
+        ok "Telegram Bot 配置已保存"
+    else
+        warn "已跳过 Telegram 配置。注意：您需要手动配置该文件才能登录后台！"
+    fi
+else
+    ok "已检测到现有的 Telegram 配置文件: ${CONFIG_FILE}"
+fi
+
 # 创建 systemd 服务文件
 cat > /etc/systemd/system/aws-panel-deployer.service <<SERVICE
 [Unit]
