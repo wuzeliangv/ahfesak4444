@@ -148,7 +148,7 @@ export function BedrockModal({ open, onClose, accountId, accountAlias }: Props) 
                       {buildTags(m).map((t) => (
                         <span
                           key={t}
-                          className="rounded bg-red-500/15 px-2 py-0.5 text-[10px] tabular-nums text-red-400"
+                          className="rounded bg-emerald-500/15 px-2 py-0.5 text-[10px] tabular-nums text-emerald-400"
                         >
                           {t}
                         </span>
