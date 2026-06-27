@@ -280,9 +280,10 @@ ok "前端构建完成"
 # =============================================================================
 step "5/6  配置 Caddy + TLS"
 
-# 创建 Web 目录
+# 创建 Web 目录与日志目录
 mkdir -p "$WEB_ROOT"
 mkdir -p /var/log/caddy
+chown -R caddy:caddy /var/log/caddy
 
 # 同步构建产物
 rsync -a --delete "${FRONTEND_DIR}/dist/" "${WEB_ROOT}/"
