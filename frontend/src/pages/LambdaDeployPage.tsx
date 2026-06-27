@@ -749,8 +749,12 @@ function AccountRow({
             )}
           </div>
           <div className="flex items-center gap-2 text-[11px] text-[var(--color-fg-muted)]">
-            <span className="font-mono">{account.verified?.accountId ?? '未验证'}</span>
-            <span>·</span>
+            {account.verified?.accountId && (
+              <>
+                <span className="font-mono">{account.verified.accountId}</span>
+                <span>·</span>
+              </>
+            )}
             <span>{regionInfo(account.defaultRegion).label}</span>
           </div>
         </div>
