@@ -410,9 +410,18 @@ async def _list_all_async(
 
 
 def list_all_regions(creds: Creds, regions: list[str] | None = None) -> dict[str, Any]:
-    """Fan-out across all Lightsail regions concurrently."""
+    """Fan-out across Lightsail regions concurrently.
+
+    When no explicit region list is provided, we intersect the fixed
+    LIGHTSAIL_REGIONS set with the account's opted-in regions. This avoids
+    wasting Lambda invocations (and hitting errors) on regions the account
+    hasn't enabled — e.g. ap-east-1 (Hong Kong), eu-south-2 (Spain), etc.
+    """
     if regions is None:
-        regions = LIGHTSAIL_REGIONS
+        from src.shared.regions import list_opted_in_regions
+
+        opted_in = set(list_opted_in_regions(creds))
+        regions = [r for r in LIGHTSAIL_REGIONS if r in opted_in]
     return asyncio.run(_list_all_async(creds, regions))
 
 

@@ -793,9 +793,16 @@ async function fanOutLightsail(
   regions: string[] | undefined,
   signal?: AbortSignal,
 ): Promise<LightsailListData> {
-  // Lightsail has its own fixed region set — don't use EC2 optedInRegions.
+  // Intersect Lightsail's fixed region set with the account's opted-in
+  // regions so we never waste API calls on regions the account hasn't enabled.
   const { LIGHTSAIL_REGIONS } = await import('./lightsailCatalog');
-  const list = regions?.length ? regions : [...LIGHTSAIL_REGIONS];
+  let list: string[];
+  if (regions?.length) {
+    list = regions;
+  } else {
+    const optedIn = new Set(await optedInRegions(creds, signal));
+    list = LIGHTSAIL_REGIONS.filter((r) => optedIn.has(r));
+  }
   const results = await Promise.all(
     list.map(async (region) => {
       try {
