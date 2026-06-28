@@ -824,9 +824,8 @@ async function fanOutLightsail(
     instances,
     regions: results.map((r) => ({
       region: r.region,
-      ok: r.ok,
-      count: r.ok ? r.instances.length : undefined,
-      error: r.ok ? undefined : r.error,
+      ok: true,
+      count: r.instances.length,
     })),
     summary: {
       total_instances: instances.length,
