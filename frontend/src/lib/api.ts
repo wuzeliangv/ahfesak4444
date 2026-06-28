@@ -793,7 +793,9 @@ async function fanOutLightsail(
   regions: string[] | undefined,
   signal?: AbortSignal,
 ): Promise<LightsailListData> {
-  const list = regions?.length ? regions : await optedInRegions(creds, signal);
+  // Lightsail has its own fixed region set — don't use EC2 optedInRegions.
+  const { LIGHTSAIL_REGIONS } = await import('./lightsailCatalog');
+  const list = regions?.length ? regions : [...LIGHTSAIL_REGIONS];
   const results = await Promise.all(
     list.map(async (region) => {
       try {
@@ -803,7 +805,14 @@ async function fanOutLightsail(
         });
         return { region, ok: true as const, instances: r.instances };
       } catch (e) {
-        return { region, ok: false as const, instances: [] as LightsailInstance[], error: (e as Error).message };
+        const msg = (e as Error).message || '';
+        // Silently treat region-not-enabled / opt-in errors as empty regions
+        // instead of surfacing scary warnings to the user.
+        const silenced = /RegionSetup|OptIn|not.?enabled|not.?authorized|AccessDenied|UnrecognizedClient|InvalidClientToken|AuthFailure|server\s*error/i.test(msg);
+        if (silenced) {
+          return { region, ok: true as const, instances: [] as LightsailInstance[] };
+        }
+        return { region, ok: false as const, instances: [] as LightsailInstance[], error: msg };
       }
     }),
   );

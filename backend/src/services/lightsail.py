@@ -77,6 +77,7 @@ _REGION_NOT_ENABLED_CODES = frozenset(
         "InvalidClientTokenId",          # same family, different wording
         "AuthFailure",
         "OptInRequired",
+        "RegionSetupInProgressException",  # region exists but not yet set up
     }
 )
 
@@ -318,6 +319,11 @@ def list_region(creds: Creds, region: str) -> list[dict[str, Any]]:
         # so the fan-out still succeeds for regions the user actually uses.
         if code in _REGION_NOT_ENABLED_CODES:
             return []
+        # Treat HTTP 5xx ("unexpected server error") from opt-in regions
+        # as region-not-enabled.
+        http_status = e.response.get("ResponseMetadata", {}).get("HTTPStatusCode", 0)
+        if http_status >= 500:
+            return []
         raise UpstreamError(
             f"lightsail get_instances failed in {region}: {code}"
         ) from e
@@ -356,9 +362,20 @@ async def _list_one_async(
         # Same not-enabled-as-empty special case as the sync path.
         if code in _REGION_NOT_ENABLED_CODES:
             return region, [], None
+        # Treat HTTP 5xx ("unexpected server error") from opt-in regions
+        # as region-not-enabled — these regions return generic 500s when
+        # the account hasn't activated them.
+        http_status = e.response.get("ResponseMetadata", {}).get("HTTPStatusCode", 0)
+        if http_status >= 500:
+            return region, [], None
         return region, None, code
     except Exception as e:  # noqa: BLE001
-        return region, None, type(e).__name__
+        err_name = type(e).__name__
+        # Catch-all: connection / timeout errors from regions that simply
+        # don't respond to this account are also silenced.
+        if "Endpoint" in str(e) or "timed out" in str(e).lower():
+            return region, [], None
+        return region, None, err_name
 
 
 async def _list_all_async(
