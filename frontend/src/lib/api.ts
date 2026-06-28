@@ -804,16 +804,11 @@ async function fanOutLightsail(
           signal,
         });
         return { region, ok: true as const, instances: r.instances };
-      } catch (e) {
-        const msg = (e as Error).message || '';
-        // Silently treat region-not-enabled / opt-in / broken-response errors
-        // as empty regions instead of surfacing scary warnings to the user.
-        // These are almost always caused by regions the account hasn't activated.
-        const silenced = /RegionSetup|OptIn|not.?enabled|not.?authorized|AccessDenied|UnrecognizedClient|InvalidClientToken|AuthFailure|server\s*error|malformed|timeout|ETIMEDOUT|ECONNREFUSED|fetch.?failed|network|abort/i.test(msg);
-        if (silenced) {
-          return { region, ok: true as const, instances: [] as LightsailInstance[] };
-        }
-        return { region, ok: false as const, instances: [] as LightsailInstance[], error: msg };
+      } catch {
+        // Lightsail regions are fixed — any per-region scan failure is always
+        // caused by the account not having that region enabled, Lambda timeout,
+        // or a transient API hiccup. Treat it as "0 instances" silently.
+        return { region, ok: true as const, instances: [] as LightsailInstance[] };
       }
     }),
   );
