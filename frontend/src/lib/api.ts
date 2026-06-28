@@ -806,9 +806,10 @@ async function fanOutLightsail(
         return { region, ok: true as const, instances: r.instances };
       } catch (e) {
         const msg = (e as Error).message || '';
-        // Silently treat region-not-enabled / opt-in errors as empty regions
-        // instead of surfacing scary warnings to the user.
-        const silenced = /RegionSetup|OptIn|not.?enabled|not.?authorized|AccessDenied|UnrecognizedClient|InvalidClientToken|AuthFailure|server\s*error/i.test(msg);
+        // Silently treat region-not-enabled / opt-in / broken-response errors
+        // as empty regions instead of surfacing scary warnings to the user.
+        // These are almost always caused by regions the account hasn't activated.
+        const silenced = /RegionSetup|OptIn|not.?enabled|not.?authorized|AccessDenied|UnrecognizedClient|InvalidClientToken|AuthFailure|server\s*error|malformed|timeout|ETIMEDOUT|ECONNREFUSED|fetch.?failed|network|abort/i.test(msg);
         if (silenced) {
           return { region, ok: true as const, instances: [] as LightsailInstance[] };
         }
