@@ -755,5 +755,15 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:  # noqa: ARG
         return err(e.code, e.message, status=e.status, **e.extra)
     except Exception as e:  # noqa: BLE001
         # Never leak the traceback in the response body
+        err_str = f"{type(e).__name__}: {e}"
+        # Detect credential-related failures and return a clear message
+        _CRED_HINTS = (
+            "UnrecognizedClient", "InvalidClientToken", "AuthFailure",
+            "ExpiredToken", "AccessDenied", "SignatureDoesNotMatch",
+            "InvalidAccessKey",
+        )
+        if any(h in err_str for h in _CRED_HINTS):
+            logger.warning("credential error: %s", err_str)
+            return err("InvalidCredentials", "凭证无效：该账号的 AK/SK 疑似已被禁用或删除", status=401)
         logger.error("unhandled %s: %s\n%s", type(e).__name__, e, traceback.format_exc())
         return err("InternalError", "unexpected server error", status=500)

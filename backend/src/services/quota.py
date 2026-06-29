@@ -20,7 +20,7 @@ from botocore.config import Config
 from botocore.exceptions import ClientError
 
 from src.aws.clients import Creds, get_client
-from src.shared.errors import UpstreamError
+from src.shared.errors import InvalidCredentials, UpstreamError
 from src.shared.regions import list_opted_in_regions
 
 # Standard on-demand vCPU quota — what the card displays
@@ -28,6 +28,17 @@ STANDARD_VCPU_QUOTA = "L-1216C47A"
 
 # All-Standard Spot Instance Requests vCPU quota
 SPOT_VCPU_QUOTA = "L-34B43A08"
+
+# AWS error codes that indicate the AK/SK is invalid, disabled, or deleted.
+_CRED_ERROR_CODES = frozenset({
+    "UnrecognizedClientException",
+    "InvalidClientTokenId",
+    "AuthFailure",
+    "SignatureDoesNotMatch",
+    "ExpiredTokenException",
+    "AccessDeniedException",
+    "InvalidAccessKeyId",
+})
 
 # Async client config — shorter timeouts since we fan out across many regions
 _ASYNC_CFG = Config(
@@ -47,6 +58,8 @@ def get_vcpu_quota(creds: Creds, region: str, quota_code: str = STANDARD_VCPU_QU
         # NoSuchResourceException = quota not applicable in this region
         if code == "NoSuchResourceException":
             return {"region": region, "quota_code": quota_code, "value": None, "name": None}
+        if code in _CRED_ERROR_CODES:
+            raise InvalidCredentials("凭证无效：该账号的 AK/SK 疑似已被禁用或删除") from e
         raise UpstreamError(f"get_service_quota failed in {region}: {code}") from e
 
     q = resp["Quota"]
