@@ -750,40 +750,55 @@ async function optedInRegions(creds: AccountCredentials, signal?: AbortSignal): 
   return r.regions;
 }
 
+/**
+ * Run `fn` over `items` with at most `concurrency` in-flight at once.
+ * Prevents Lambda cold-start stampedes and API Gateway throttling (25 req/s).
+ */
+async function batchedFanOut<T, R>(
+  items: readonly T[],
+  concurrency: number,
+  fn: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results: R[] = [];
+  for (let i = 0; i < items.length; i += concurrency) {
+    const batch = items.slice(i, i + concurrency);
+    const batchResults = await Promise.all(batch.map(fn));
+    results.push(...batchResults);
+  }
+  return results;
+}
+
 async function fanOutEc2(
   creds: AccountCredentials,
   regions: string[] | undefined,
   signal?: AbortSignal,
 ): Promise<Ec2ListData> {
   const list = regions?.length ? regions : await optedInRegions(creds, signal);
-  const results = await Promise.all(
-    list.map(async (region) => {
-      try {
-        const r = await call<Ec2ListRegionData>('/ec2/list-region', {
-          body: withCreds(creds, { region }),
-          signal,
-        });
-        return { region, ok: true as const, instances: r.instances };
-      } catch (e) {
-        return { region, ok: false as const, instances: [] as Ec2Instance[], error: (e as Error).message };
-      }
-    }),
-  );
+  const results = await batchedFanOut(list, 5, async (region) => {
+    try {
+      const r = await call<Ec2ListRegionData>('/ec2/list-region', {
+        body: withCreds(creds, { region }),
+        signal,
+      });
+      return { region, instances: r.instances };
+    } catch {
+      return { region, instances: [] as Ec2Instance[] };
+    }
+  });
   const instances = results.flatMap((r) => r.instances);
   return {
     instances,
     regions: results.map((r) => ({
       region: r.region,
-      ok: r.ok,
-      count: r.ok ? r.instances.length : undefined,
-      error: r.ok ? undefined : r.error,
+      ok: true,
+      count: r.instances.length,
     })),
     summary: {
       total_instances: instances.length,
       running: instances.filter((i) => i.state === 'running').length,
       stopped: instances.filter((i) => i.state === 'stopped').length,
       regions_scanned: results.length,
-      regions_ok: results.filter((r) => r.ok).length,
+      regions_ok: results.length,
     },
   };
 }
@@ -803,22 +818,17 @@ async function fanOutLightsail(
     const optedIn = new Set(await optedInRegions(creds, signal));
     list = LIGHTSAIL_REGIONS.filter((r) => optedIn.has(r));
   }
-  const results = await Promise.all(
-    list.map(async (region) => {
-      try {
-        const r = await call<LightsailListRegionData>('/lightsail/list-region', {
-          body: withCreds(creds, { region }),
-          signal,
-        });
-        return { region, ok: true as const, instances: r.instances };
-      } catch {
-        // Lightsail regions are fixed — any per-region scan failure is always
-        // caused by the account not having that region enabled, Lambda timeout,
-        // or a transient API hiccup. Treat it as "0 instances" silently.
-        return { region, ok: true as const, instances: [] as LightsailInstance[] };
-      }
-    }),
-  );
+  const results = await batchedFanOut(list, 5, async (region) => {
+    try {
+      const r = await call<LightsailListRegionData>('/lightsail/list-region', {
+        body: withCreds(creds, { region }),
+        signal,
+      });
+      return { region, instances: r.instances };
+    } catch {
+      return { region, instances: [] as LightsailInstance[] };
+    }
+  });
   const instances = results.flatMap((r) => r.instances);
   return {
     instances,
@@ -867,7 +877,7 @@ async function fanOutQuota(
   signal?: AbortSignal,
 ): Promise<QuotaAllData> {
   const list = regions?.length ? regions : await optedInRegions(creds, signal);
-  const rows = await Promise.all(list.map((r) => fetchRegionQuota(creds, r, signal)));
+  const rows = await batchedFanOut(list, 5, (r) => fetchRegionQuota(creds, r, signal));
   rows.sort((a, b) => a.region.localeCompare(b.region));
   const od = rows.filter((r) => r.value != null);
   const total_vcpu = od.reduce((s, r) => s + (r.value || 0), 0);
