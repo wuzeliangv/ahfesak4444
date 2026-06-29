@@ -59,7 +59,7 @@ def get_vcpu_quota(creds: Creds, region: str, quota_code: str = STANDARD_VCPU_QU
         if code == "NoSuchResourceException":
             return {"region": region, "quota_code": quota_code, "value": None, "name": None}
         if code in _CRED_ERROR_CODES:
-            raise InvalidCredentials("凭证无效：该账号的 AK/SK 疑似已被禁用或删除") from e
+            raise InvalidCredentials("AWS 接口错误: 账号密钥无效或已被禁用 (UnrecognizedClientException: The security token included in the request is invalid.)") from e
         raise UpstreamError(f"get_service_quota failed in {region}: {code}") from e
 
     q = resp["Quota"]

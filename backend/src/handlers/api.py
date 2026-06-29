@@ -764,6 +764,6 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:  # noqa: ARG
         )
         if any(h in err_str for h in _CRED_HINTS):
             logger.warning("credential error: %s", err_str)
-            return err("InvalidCredentials", "凭证无效：该账号的 AK/SK 疑似已被禁用或删除", status=401)
+            return err("InvalidCredentials", "AWS 接口错误: 账号密钥无效或已被禁用 (UnrecognizedClientException: The security token included in the request is invalid.)", status=401)
         logger.error("unhandled %s: %s\n%s", type(e).__name__, e, traceback.format_exc())
         return err("InternalError", "unexpected server error", status=500)
