@@ -842,7 +842,7 @@ async function fanOutLightsail(
       running: instances.filter((i) => i.state === 'running').length,
       stopped: instances.filter((i) => i.state === 'stopped').length,
       regions_scanned: results.length,
-      regions_ok: results.filter((r) => r.ok).length,
+      regions_ok: results.length,
     },
   };
 }
