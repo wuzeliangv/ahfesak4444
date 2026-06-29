@@ -10,7 +10,7 @@
  */
 
 import { useState } from 'react';
-import { Globe2, ChevronDown, Zap, Loader2 } from 'lucide-react';
+import { Globe, ChevronDown, Zap, Loader2 } from 'lucide-react';
 import clsx from 'clsx';
 import { QuotaModal } from './QuotaModal';
 
@@ -69,11 +69,11 @@ export function QuotaOrb({
           <button
             type="button"
             onClick={() => setOpen(true)}
-            className="inline-flex size-6 items-center justify-center rounded text-[var(--color-fg-muted)] hover:bg-white/5 hover:text-[var(--color-fg-primary)] transition"
+            className="inline-flex size-6 items-center justify-center rounded bg-white/5 border border-white/[0.08] text-[var(--color-fg-muted)] hover:bg-[var(--color-accent-500)]/20 hover:text-[var(--color-accent-300)] hover:border-[var(--color-accent-500)]/30 transition-all duration-200"
             title="点击查看/查询全区域 vCPU 配额"
             aria-label="查看全区域配额"
           >
-            <Globe2 size={13} />
+            <Globe size={13} />
           </button>
         </div>
       ) : trigger === 'chevron' ? (
@@ -98,7 +98,7 @@ export function QuotaOrb({
           )}
           aria-label="查看全区域配额"
         >
-          <Globe2 size={14} />
+          <Globe size={14} />
         </button>
       )}
 
