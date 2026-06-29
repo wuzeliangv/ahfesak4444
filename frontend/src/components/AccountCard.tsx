@@ -71,10 +71,16 @@ export function AccountCard({
   const countryCode = account.verified?.countryCode ?? null;
   const age = accountAge(account.verified?.accountCreatedAt);
 
-  // Live us-east-1 vCPU number — falls back to whatever was last cached.
+  // Live us-east-1 vCPU number — manual refresh only once cached data exists.
   const headlineQ = useQuery({
     queryKey: ['quota-headline', account.id, account.defaultRegion],
-    staleTime: 5 * 60 * 1000,
+    staleTime: Infinity,
+    initialData: account.quota?.usEast1 != null ? {
+      region: account.defaultRegion,
+      quota_code: 'L-1216C47A',
+      value: account.quota.usEast1,
+      name: 'Running On-Demand Standard (A, C, D, H, I, M, T, Z) instances',
+    } : undefined,
     queryFn: async ({ signal }) => {
       const creds = await getAccountCredentials(account.id);
       const data = await api.quotaRegion(creds, account.defaultRegion, signal);
