@@ -39,6 +39,7 @@ import { DeployerAccountModal } from '@/components/DeployerAccountModal';
 import { TelegramSettings } from '@/components/TelegramSettings';
 import { toast } from '@/lib/toast';
 import { usePageTitle } from '@/hooks/usePageTitle';
+import { Modal } from '@/components/ui/Modal';
 import {
   deploy,
   destroy,
@@ -107,6 +108,13 @@ export function LambdaDeployPage() {
   const [foundNodes, setFoundNodes] = useState<ScanFound[]>([]);
   const [probing, setProbing] = useState(false);
   const [redeploying, setRedeploying] = useState(false);
+  const [confirm, setConfirm] = useState<{
+    title: string;
+    message: string;
+    confirmText?: string;
+    isDanger?: boolean;
+    onConfirm: () => void;
+  } | null>(null);
 
   const [buildMsg, setBuildMsg] = useState<string | null>(null);
   const [statuses, setStatuses] = useState<Record<string, TargetState>>({});
@@ -149,18 +157,26 @@ export function LambdaDeployPage() {
   }
 
   async function handleDeleteAccount(id: string) {
-    if (!window.confirm('删除这个部署账号?(不影响已部署的节点,凭证仅从本地移除)')) return;
-    try {
-      await deleteDeployerAccount(id);
-      setSelAccounts((prev) => {
-        const next = new Set(prev);
-        next.delete(id);
-        return next;
-      });
-      qc.invalidateQueries({ queryKey: ['deployer-accounts'] });
-    } catch (e) {
-      toast.error((e as Error).message, { title: '删除失败' });
-    }
+    setConfirm({
+      title: '确认删除部署账号',
+      message: '确定要删除这个部署账号吗？\n（此操作不影响已部署的节点，凭证仅从本地面板中移除）',
+      confirmText: '确认删除',
+      isDanger: true,
+      onConfirm: async () => {
+        setConfirm(null);
+        try {
+          await deleteDeployerAccount(id);
+          setSelAccounts((prev) => {
+            const next = new Set(prev);
+            next.delete(id);
+            return next;
+          });
+          qc.invalidateQueries({ queryKey: ['deployer-accounts'] });
+        } catch (e) {
+          toast.error((e as Error).message, { title: '删除失败' });
+        }
+      },
+    });
   }
 
   // ---------- SSE event handling -----------------------------------------
@@ -334,93 +350,104 @@ export function LambdaDeployPage() {
   // ---------- redeploy (hot update) --------------------------------------
   async function handleRedeploy() {
     if (deployments.length === 0) return;
-    if (!window.confirm('确认重新部署所有节点?\n这将拉取最新后端代码构建，并就地更新所有已部署节点的 API 和 Lambda 代码（不会删除原节点，API 地址和密钥不变）。')) {
-      return;
-    }
-    setBusy(true);
-    setRedeploying(true);
-    setBuildMsg(null);
-    setLog([]);
+    setConfirm({
+      title: '更新全部节点代码',
+      message: '确定要重新部署所有节点吗？\n这将拉取最新的后端代码重新构建，并就地更新所有已部署节点的 API 和 Lambda 代码。（此操作不会删除现有节点，节点的 API 地址与 API Key 均保持不变）。',
+      confirmText: '确认更新',
+      onConfirm: async () => {
+        setConfirm(null);
+        setBusy(true);
+        setRedeploying(true);
+        setBuildMsg(null);
+        setLog([]);
 
-    const seed: Record<string, TargetState> = {};
-    for (const d of deployments) {
-      seed[targetLabel(d.alias ?? undefined, d.region)] = { region: d.region, alias: d.alias ?? undefined, status: 'pending' };
-    }
-    setStatuses(seed);
+        const seed: Record<string, TargetState> = {};
+        for (const d of deployments) {
+          seed[targetLabel(d.alias ?? undefined, d.region)] = { region: d.region, alias: d.alias ?? undefined, status: 'pending' };
+        }
+        setStatuses(seed);
 
-    try {
-      let summary: any = null;
-      await redeploy((ev) => {
-        if (ev.event === 'done') summary = ev.data;
-        else handleEvent(ev);
-      });
-      const ok = summary?.okCount ?? 0;
-      const total = summary?.total ?? deployments.length;
-      if (ok === total) toast.success(`成功更新全部 ${ok} 个节点`);
-      else toast.warning(`${ok}/${total} 个节点更新成功, 其余失败, 见日志`, { title: '部分更新失败' });
-    } catch (e) {
-      toast.error((e as Error).message, { title: '更新失败' });
-    } finally {
-      setBusy(false);
-      setRedeploying(false);
-      setBuildMsg(null);
-      qc.invalidateQueries({ queryKey: ['deployments'] });
-      void refreshEndpoints();
-    }
+        try {
+          let summary: any = null;
+          await redeploy((ev) => {
+            if (ev.event === 'done') summary = ev.data;
+            else handleEvent(ev);
+          });
+          const ok = summary?.okCount ?? 0;
+          const total = summary?.total ?? deployments.length;
+          if (ok === total) toast.success(`成功更新全部 ${ok} 个节点`);
+          else toast.warning(`${ok}/${total} 个节点更新成功, 其余失败, 见日志`, { title: '部分更新失败' });
+        } catch (e) {
+          toast.error((e as Error).message, { title: '更新失败' });
+        } finally {
+          setBusy(false);
+          setRedeploying(false);
+          setBuildMsg(null);
+          qc.invalidateQueries({ queryKey: ['deployments'] });
+          void refreshEndpoints();
+        }
+      },
+    });
   }
 
   // ---------- destroy -----------------------------------------------------
   async function handleDestroy(d: DeploymentEntry) {
-    if (!window.confirm(`确认销毁 ${d.alias || d.accountId} / ${d.region} 的 Lambda 节点?\n将删除该区的 CloudFormation 栈 (API 网关 + Lambda),不可恢复。`)) {
-      return;
-    }
-    // Resolve credentials: prefer the vault account id recorded at deploy time,
-    // else match by AWS account id against verified accounts.
-    let creds: { accessKey: string; secretKey: string } | null = null;
-    try {
-      if (d.accountRef) creds = await getDeployerAccountCredentials(d.accountRef);
-    } catch {
-      creds = null;
-    }
-    if (!creds) {
-      const match = accounts.find((a) => a.verified?.accountId === d.accountId);
-      if (match) {
+    setConfirm({
+      title: '确认销毁 Lambda 节点',
+      message: `确定要销毁 ${d.alias || d.accountId} / ${d.region} 的 Lambda 节点吗？\n这将彻底删除该区域的 CloudFormation 堆栈（包括 API 网关 + Lambda 资源），操作不可恢复！`,
+      confirmText: '确认销毁',
+      isDanger: true,
+      onConfirm: async () => {
+        setConfirm(null);
+        // Resolve credentials: prefer the vault account id recorded at deploy time,
+        // else match by AWS account id against verified accounts.
+        let creds: { accessKey: string; secretKey: string } | null = null;
         try {
-          creds = await getDeployerAccountCredentials(match.id);
+          if (d.accountRef) creds = await getDeployerAccountCredentials(d.accountRef);
         } catch {
           creds = null;
         }
-      }
-    }
-    if (!creds) {
-      toast.error('本地找不到该部署账号的凭证,无法销毁。请确保对应账号仍在「选择账号」列表中。', {
-        title: '缺少凭证',
-      });
-      return;
-    }
+        if (!creds) {
+          const match = accounts.find((a) => a.verified?.accountId === d.accountId);
+          if (match) {
+            try {
+              creds = await getDeployerAccountCredentials(match.id);
+            } catch {
+              creds = null;
+            }
+          }
+        }
+        if (!creds) {
+          toast.error('本地找不到该部署账号 of 凭证, 无法销毁。请确保对应账号仍在「选择账号」列表中。', {
+            title: '缺少凭证',
+          });
+          return;
+        }
 
-    setDestroyingId(d.id);
-    setBuildMsg(null);
-    setLog([]);
-    setStatuses({ [`${d.accountId} / ${d.region}`]: { region: d.region, status: 'running' } });
-    try {
-      let summary: any = null;
-      await destroy(
-        { region: d.region, accountId: d.accountId, accessKey: creds.accessKey, secretKey: creds.secretKey },
-        (ev) => {
-          if (ev.event === 'done') summary = ev.data;
-          else handleEvent(ev);
-        },
-      );
-      if (summary?.ok) toast.success(`已销毁 ${d.region} 节点`);
-      else toast.warning('销毁可能未完全成功,见日志', { title: '销毁' });
-    } catch (e) {
-      toast.error((e as Error).message, { title: '销毁失败' });
-    } finally {
-      setDestroyingId(null);
-      qc.invalidateQueries({ queryKey: ['deployments'] });
-      void refreshEndpoints();
-    }
+        setDestroyingId(d.id);
+        setBuildMsg(null);
+        setLog([]);
+        setStatuses({ [`${d.accountId} / ${d.region}`]: { region: d.region, status: 'running' } });
+        try {
+          let summary: any = null;
+          await destroy(
+            { region: d.region, accountId: d.accountId, accessKey: creds.accessKey, secretKey: creds.secretKey },
+            (ev) => {
+              if (ev.event === 'done') summary = ev.data;
+              else handleEvent(ev);
+            },
+          );
+          if (summary?.ok) toast.success(`已销毁 ${d.region} 节点`);
+          else toast.warning('销毁可能未完全成功,见日志', { title: '销毁' });
+        } catch (e) {
+          toast.error((e as Error).message, { title: '销毁失败' });
+        } finally {
+          setDestroyingId(null);
+          qc.invalidateQueries({ queryKey: ['deployments'] });
+          void refreshEndpoints();
+        }
+      },
+    });
   }
 
   const statusEntries = useMemo(() => Object.entries(statuses), [statuses]);
@@ -754,6 +781,37 @@ export function LambdaDeployPage() {
       </main>
 
       <DeployerAccountModal open={addOpen} onClose={() => setAddOpen(false)} />
+
+      {confirm && (
+        <Modal
+          open={confirm !== null}
+          onClose={() => setConfirm(null)}
+          title={confirm.title}
+          size="sm"
+        >
+          <div className="space-y-4 pt-1">
+            <p className="text-xs leading-relaxed text-[var(--color-fg-secondary)] whitespace-pre-line">
+              {confirm.message}
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" onClick={() => setConfirm(null)}>
+                取消
+              </Button>
+              <Button
+                variant={confirm.isDanger ? 'ghost' : 'primary'}
+                className={
+                  confirm.isDanger
+                    ? '!bg-[var(--color-status-error)]/20 !text-[var(--color-status-error)] hover:!bg-[var(--color-status-error)]/30 border border-[var(--color-status-error)]/20'
+                    : undefined
+                }
+                onClick={confirm.onConfirm}
+              >
+                {confirm.confirmText || '确认'}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
