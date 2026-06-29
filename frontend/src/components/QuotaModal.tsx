@@ -126,7 +126,7 @@ export function QuotaModal({ accountId, open, onClose }: Props) {
         <div className="flex-1 overflow-y-auto px-2 pb-2">
           {q.isError && (
             <p className="px-2 py-3 text-sm text-[var(--color-status-error)]">
-              加载失败:{(q.error as Error).message}
+              {(q.error as Error).message}
             </p>
           )}
 
