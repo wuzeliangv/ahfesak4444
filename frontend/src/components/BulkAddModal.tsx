@@ -141,63 +141,68 @@ export function BulkAddModal({ open, onClose }: Props) {
 
     const out: RowResult[] = [...invalid];
 
-    for (let i = 0; i < rows.length; i++) {
-      const row = rows[i];
-      try {
-        let verified: AccountInput['verified'] | undefined;
-        let accountId: string | undefined;
-        let iamAlias: string | undefined;
+    const BATCH_SIZE = 8;
+    for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+      const chunk = rows.slice(i, i + BATCH_SIZE);
+      await Promise.all(
+        chunk.map(async (row) => {
+          try {
+            let verified: AccountInput['verified'] | undefined;
+            let accountId: string | undefined;
+            let iamAlias: string | undefined;
 
-        try {
-          const v = await api.verify({ accessKey: row.accessKey, secretKey: row.secretKey });
-          verified = {
-            accountId: v.account_id,
-            arn: v.arn,
-            iamAlias: v.alias,
-            isRoot: v.is_root,
-            akPrefix: v.ak_prefix,
-            countryCode: v.country_code,
-            accountCreatedAt: v.created_at,
-          };
-          accountId = v.account_id;
-          iamAlias = v.alias ?? undefined;
-        } catch (verr) {
-          if (verr instanceof ApiError && verr.code === 'NotConfigured') {
-            // No backend yet -> bypass validation and add blindly
-            verified = undefined;
-          } else {
-            throw verr; // Bubble up other errors (like InvalidCredentials)
+            try {
+              const v = await api.verify({ accessKey: row.accessKey, secretKey: row.secretKey });
+              verified = {
+                accountId: v.account_id,
+                arn: v.arn,
+                iamAlias: v.alias,
+                isRoot: v.is_root,
+                akPrefix: v.ak_prefix,
+                countryCode: v.country_code,
+                accountCreatedAt: v.created_at,
+              };
+              accountId = v.account_id;
+              iamAlias = v.alias ?? undefined;
+            } catch (verr) {
+              if (verr instanceof ApiError && verr.code === 'NotConfigured') {
+                // No backend yet -> bypass validation and add blindly
+                verified = undefined;
+              } else {
+                throw verr; // Bubble up other errors (like InvalidCredentials)
+              }
+            }
+
+            const alias = row.alias?.trim() || iamAlias || accountId || `AWS_Acc_${row.accessKey.slice(0,6)}`;
+            await addAccount({
+              alias,
+              accessKey: row.accessKey,
+              secretKey: row.secretKey,
+              defaultRegion: row.region || 'us-east-1',
+              verified,
+            });
+
+            out.push({
+              line: row.line,
+              status: 'ok',
+              alias,
+              accountId,
+            });
+          } catch (e) {
+            const msg =
+              e instanceof ApiError && e.code === 'InvalidCredentials'
+                ? 'AWS 拒绝了这对 AK/SK'
+                : (e as Error).message;
+            out.push({
+              line: row.line,
+              status: 'failed',
+              alias: row.alias ?? row.accessKey.slice(0, 12),
+              message: msg,
+            });
           }
-        }
-
-        const alias = row.alias?.trim() || iamAlias || accountId || `AWS_Acc_${row.accessKey.slice(0,6)}`;
-        await addAccount({
-          alias,
-          accessKey: row.accessKey,
-          secretKey: row.secretKey,
-          defaultRegion: row.region || 'us-east-1',
-          verified,
-        });
-
-        out.push({
-          line: row.line,
-          status: 'ok',
-          alias,
-          accountId,
-        });
-      } catch (e) {
-        const msg =
-          e instanceof ApiError && e.code === 'InvalidCredentials'
-            ? 'AWS 拒绝了这对 AK/SK'
-            : (e as Error).message;
-        out.push({
-          line: row.line,
-          status: 'failed',
-          alias: row.alias ?? row.accessKey.slice(0, 12),
-          message: msg,
-        });
-      }
-      setProgress({ done: i + 1, total: rows.length });
+        })
+      );
+      setProgress({ done: Math.min(i + BATCH_SIZE, rows.length), total: rows.length });
     }
 
     setRunning(false);
