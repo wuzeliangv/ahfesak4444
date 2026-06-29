@@ -43,6 +43,7 @@ import {
   deploy,
   destroy,
   scan,
+  redeploy,
   listDeployments,
   probeNodes,
   type DeployTarget,
@@ -105,6 +106,7 @@ export function LambdaDeployPage() {
   const [scanMsg, setScanMsg] = useState<string | null>(null);
   const [foundNodes, setFoundNodes] = useState<ScanFound[]>([]);
   const [probing, setProbing] = useState(false);
+  const [redeploying, setRedeploying] = useState(false);
 
   const [buildMsg, setBuildMsg] = useState<string | null>(null);
   const [statuses, setStatuses] = useState<Record<string, TargetState>>({});
@@ -327,6 +329,44 @@ export function LambdaDeployPage() {
     }
     await runDeploy(targets);
     setFoundNodes([]);
+  }
+
+  // ---------- redeploy (hot update) --------------------------------------
+  async function handleRedeploy() {
+    if (deployments.length === 0) return;
+    if (!window.confirm('确认重新部署所有节点?\n这将拉取最新后端代码构建，并就地更新所有已部署节点的 API 和 Lambda 代码（不会删除原节点，API 地址和密钥不变）。')) {
+      return;
+    }
+    setBusy(true);
+    setRedeploying(true);
+    setBuildMsg(null);
+    setLog([]);
+
+    const seed: Record<string, TargetState> = {};
+    for (const d of deployments) {
+      seed[targetLabel(d.alias ?? undefined, d.region)] = { region: d.region, alias: d.alias ?? undefined, status: 'pending' };
+    }
+    setStatuses(seed);
+
+    try {
+      let summary: any = null;
+      await redeploy((ev) => {
+        if (ev.event === 'done') summary = ev.data;
+        else handleEvent(ev);
+      });
+      const ok = summary?.okCount ?? 0;
+      const total = summary?.total ?? deployments.length;
+      if (ok === total) toast.success(`成功更新全部 ${ok} 个节点`);
+      else toast.warning(`${ok}/${total} 个节点更新成功, 其余失败, 见日志`, { title: '部分更新失败' });
+    } catch (e) {
+      toast.error((e as Error).message, { title: '更新失败' });
+    } finally {
+      setBusy(false);
+      setRedeploying(false);
+      setBuildMsg(null);
+      qc.invalidateQueries({ queryKey: ['deployments'] });
+      void refreshEndpoints();
+    }
   }
 
   // ---------- destroy -----------------------------------------------------
@@ -604,6 +644,20 @@ export function LambdaDeployPage() {
               <span className="text-[var(--color-fg-muted)]">({deployments.length})</span>
             </h2>
             <div className="flex items-center gap-1.5">
+              {deployments.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="!h-8 !px-2.5 text-xs text-[var(--color-accent-400)] hover:text-[var(--color-accent-300)]"
+                  onClick={handleRedeploy}
+                  loading={redeploying}
+                  disabled={busy || scanning || redeploying}
+                  leadingIcon={<RefreshCcw size={13} />}
+                  title="重新构建后端并一键部署更新全部节点的代码(热更新,不删除节点,API地址与API Key不变)"
+                >
+                  更新全部节点代码
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="sm"

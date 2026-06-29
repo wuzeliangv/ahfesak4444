@@ -354,6 +354,14 @@ export function destroy(
   return streamSSE('/destroy', target, onEvent, signal);
 }
 
+/** Redeploy all workers with fresh code (hot update); streams progress via `onEvent`. */
+export function redeploy(
+  onEvent: (ev: DeployerEvent) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  return streamSSE('/redeploy', {}, onEvent, signal);
+}
+
 /**
  * Scan the given accounts for existing worker stacks; streams
  * scan-progress / scan-found / done events. The daemon scans each account's

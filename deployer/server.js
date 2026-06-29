@@ -1287,6 +1287,71 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
+  // Redeploy all registered nodes with fresh code (hot update)
+  if (req.method === 'POST' && pathName === '/deployer/redeploy') {
+    const reg = loadRegistry();
+    const nodes = reg.deployments || [];
+    if (nodes.length === 0) return json(res, 400, { error: 'BadRequest', message: '没有已部署的节点' }, origin);
+
+    sseInit(res, origin);
+    const ping = setInterval(() => { try { res.write(': ping\n\n'); } catch { /* */ } }, 15000);
+    req.on('close', () => clearInterval(ping));
+
+    const results = [];
+    try {
+      // Force rebuild with latest code
+      samBuilt = false;
+      const built = await ensureBuild(res);
+      if (!built) {
+        sse(res, 'done', { ok: false, error: 'sam build 失败', results });
+        clearInterval(ping);
+        return res.end();
+      }
+
+      for (const node of nodes) {
+        const label = `${node.alias || node.accountId} / ${node.region}`;
+        // Find credentials from deployer accounts or panel accounts
+        let creds = null;
+        if (node.accountRef) {
+          const acc = _store.accounts.find((a) => a.id === node.accountRef)
+                   || (_store.deployerAccounts || []).find((a) => a.id === node.accountRef);
+          if (acc && acc.ak && acc.sk) {
+            try { creds = { accessKey: decryptSecret(acc.ak), secretKey: decryptSecret(acc.sk) }; } catch { /* */ }
+          }
+        }
+        if (!creds && node.accountId) {
+          // Fallback: match by AWS account id
+          const acc = _store.accounts.find((a) => a.verified && a.verified.accountId === node.accountId)
+                   || (_store.deployerAccounts || []).find((a) => a.verified && a.verified.accountId === node.accountId);
+          if (acc && acc.ak && acc.sk) {
+            try { creds = { accessKey: decryptSecret(acc.ak), secretKey: decryptSecret(acc.sk) }; } catch { /* */ }
+          }
+        }
+        if (!creds) {
+          sse(res, 'target-error', { target: label, region: node.region, error: '找不到该节点的凭证,跳过' });
+          results.push({ ok: false, label });
+          continue;
+        }
+        const r = await deployTarget(res, {
+          alias: node.alias,
+          region: node.region,
+          accessKey: creds.accessKey,
+          secretKey: creds.secretKey,
+          accountRef: node.accountRef,
+        }, DEFAULT_CORS_ORIGIN);
+        results.push(r);
+      }
+      const okCount = results.filter((r) => r.ok).length;
+      sse(res, 'done', { ok: okCount === results.length, okCount, total: results.length, results });
+    } catch (e) {
+      sse(res, 'done', { ok: false, error: e.message, results });
+    } finally {
+      clearInterval(ping);
+      res.end();
+    }
+    return;
+  }
+
   // Deploy (SSE)
   if (req.method === 'POST' && pathName === '/deployer/deploy') {
     let body;
