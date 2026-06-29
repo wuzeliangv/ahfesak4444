@@ -11,10 +11,10 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { AlertCircle, Loader2 } from 'lucide-react';
+import { AlertCircle, Loader2, RefreshCcw } from 'lucide-react';
 import { Modal } from './ui/Modal';
 import { Button } from './ui/Button';
-import { api, type BedrockOpusModel, type BedrockQuotaPair } from '@/lib/api';
+import { api, type BedrockOpusModel } from '@/lib/api';
 import { getAccountCredentials } from '@/lib/vault';
 
 interface Props {
@@ -50,25 +50,6 @@ function fmtCount(n: number | null | undefined): string {
   return n.toLocaleString();
 }
 
-function pairTagTokens(p: BedrockQuotaPair, prefix = ''): string {
-  return `${prefix}${fmtTokensM(p.applied)} / ${fmtTokensM(p.default)}`;
-}
-
-function pairTagCount(p: BedrockQuotaPair, prefix = ''): string {
-  return `${prefix}${fmtCount(p.applied)} / ${fmtCount(p.default)}`;
-}
-
-function buildTags(m: BedrockOpusModel): string[] {
-  const tags: string[] = [
-    pairTagTokens(m.daily),
-    pairTagTokens(m.tpm, 'TPM: '),
-  ];
-  if (m.rpm) {
-    tags.push(pairTagCount(m.rpm, 'RPM: '));
-  }
-  return tags;
-}
-
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -78,7 +59,7 @@ export function BedrockModal({ open, onClose, accountId, accountAlias }: Props) 
     enabled: open,
     queryKey: ['bedrock-info', accountId, BEDROCK_REGION],
     retry: false,
-    staleTime: 60 * 1000,
+    staleTime: 0,
     queryFn: async ({ signal }) => {
       const creds = await getAccountCredentials(accountId);
       return api.bedrockInfo(creds, BEDROCK_REGION, signal);
@@ -86,6 +67,17 @@ export function BedrockModal({ open, onClose, accountId, accountAlias }: Props) 
   });
 
   const data = q.data;
+
+  const tags = (m: BedrockOpusModel): string[] => {
+    const arr: string[] = [
+      `${fmtTokensM(m.daily.applied)} / ${fmtTokensM(m.daily.default)}`,
+      `TPM: ${fmtTokensM(m.tpm.applied)} / ${fmtTokensM(m.tpm.default)}`,
+    ];
+    if (m.rpm) {
+      arr.push(`RPM: ${fmtCount(m.rpm.applied)} / ${fmtCount(m.rpm.default)}`);
+    }
+    return arr;
+  };
 
   return (
     <Modal open={open} onClose={onClose} title="Bedrock 权限" description={accountAlias} size="sm">
@@ -145,7 +137,7 @@ export function BedrockModal({ open, onClose, accountId, accountAlias }: Props) 
 
                     {/* Row 3: applied/default tags */}
                     <div className="flex flex-wrap gap-2">
-                      {buildTags(m).map((t) => (
+                      {tags(m).map((t) => (
                         <span
                           key={t}
                           className="rounded bg-emerald-500/15 px-2 py-0.5 text-[10px] tabular-nums text-emerald-400"
@@ -161,7 +153,21 @@ export function BedrockModal({ open, onClose, accountId, accountAlias }: Props) 
           </>
         )}
 
-        <div className="flex items-center justify-end pt-1">
+        <div className="flex items-center justify-between pt-1">
+          <button
+            type="button"
+            onClick={() => q.refetch()}
+            disabled={q.isFetching}
+            className="flex items-center gap-1.5 text-xs text-[var(--color-fg-muted)] transition-colors hover:text-[var(--color-fg-primary)] disabled:opacity-50"
+            title="手动刷新 Bedrock 权限"
+          >
+            {q.isFetching ? (
+              <Loader2 size={12} className="animate-spin" />
+            ) : (
+              <RefreshCcw size={12} />
+            )}
+            <span>刷新</span>
+          </button>
           <Button type="button" variant="ghost" size="sm" onClick={onClose}>
             关闭
           </Button>
