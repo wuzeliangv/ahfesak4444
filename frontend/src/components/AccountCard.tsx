@@ -82,13 +82,18 @@ export function AccountCard({
       name: 'Running On-Demand Standard (A, C, D, H, I, M, T, Z) instances',
     } : undefined,
     queryFn: async ({ signal }) => {
-      const creds = await getAccountCredentials(account.id);
-      const data = await api.quotaRegion(creds, account.defaultRegion, signal);
-      if (data.value != null) {
-        await setAccountQuota(account.id, { usEast1: data.value });
-        qc.invalidateQueries({ queryKey: ['accounts'] });
+      try {
+        const creds = await getAccountCredentials(account.id);
+        const data = await api.quotaRegion(creds, account.defaultRegion, signal);
+        if (data.value != null) {
+          await setAccountQuota(account.id, { usEast1: data.value });
+          qc.invalidateQueries({ queryKey: ['accounts'] });
+        }
+        return data;
+      } catch (e) {
+        toast.error((e as Error).message || '查询失败', { title: `${account.alias} 配额查询失败` });
+        throw e;
       }
-      return data;
     },
   });
 
