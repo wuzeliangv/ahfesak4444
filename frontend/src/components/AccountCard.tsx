@@ -86,6 +86,7 @@ export function AccountCard({
       const data = await api.quotaRegion(creds, account.defaultRegion, signal);
       if (data.value != null) {
         await setAccountQuota(account.id, { usEast1: data.value });
+        qc.invalidateQueries({ queryKey: ['accounts'] });
       }
       return data;
     },
@@ -173,7 +174,9 @@ export function AccountCard({
             accountId={account.id}
             trigger="vcpu"
             vcpuValue={headline}
-            vcpuLoading={headlineQ.isLoading}
+            vcpuLoading={headlineQ.isFetching}
+            onRefreshVcpu={() => headlineQ.refetch()}
+            defaultRegion={account.defaultRegion}
           />
         </div>
       </header>

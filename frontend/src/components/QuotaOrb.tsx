@@ -10,7 +10,7 @@
  */
 
 import { useState } from 'react';
-import { Globe2, ChevronDown, Zap } from 'lucide-react';
+import { Globe2, ChevronDown, Zap, Loader2 } from 'lucide-react';
 import clsx from 'clsx';
 import { QuotaModal } from './QuotaModal';
 
@@ -20,6 +20,8 @@ interface Props {
   /** For the 'vcpu' trigger: the headline us-east-1 vCPU number. */
   vcpuValue?: number | null;
   vcpuLoading?: boolean;
+  onRefreshVcpu?: () => void;
+  defaultRegion?: string;
 }
 
 export function QuotaOrb({
@@ -27,6 +29,8 @@ export function QuotaOrb({
   trigger = 'orb',
   vcpuValue = null,
   vcpuLoading = false,
+  onRefreshVcpu,
+  defaultRegion,
 }: Props) {
   const [open, setOpen] = useState(false);
 
@@ -41,20 +45,37 @@ export function QuotaOrb({
   return (
     <>
       {trigger === 'vcpu' ? (
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className={clsx(
-            'inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium tabular-nums transition',
-            vcpuTone,
-            'hover:brightness-110',
-          )}
-          title="点击查看全区域 vCPU 配额"
-          aria-label="查看全区域配额"
-        >
-          <Zap size={11} className="shrink-0" />
-          {vcpuDisplay} vCPUs
-        </button>
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={onRefreshVcpu}
+            disabled={vcpuLoading}
+            className={clsx(
+              'inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium tabular-nums transition',
+              vcpuTone,
+              'hover:brightness-110 disabled:opacity-75',
+            )}
+            title={defaultRegion ? `点击刷新默认区域 (${defaultRegion}) vCPU 配额` : '点击刷新默认区域 vCPU 配额'}
+            aria-label="刷新默认区域配额"
+          >
+            {vcpuLoading ? (
+              <Loader2 size={11} className="shrink-0 animate-spin" />
+            ) : (
+              <Zap size={11} className="shrink-0" />
+            )}
+            <span>{vcpuDisplay} vCPUs</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="inline-flex size-6 items-center justify-center rounded text-[var(--color-fg-muted)] hover:bg-white/5 hover:text-[var(--color-fg-primary)] transition"
+            title="点击查看/查询全区域 vCPU 配额"
+            aria-label="查看全区域配额"
+          >
+            <Globe2 size={13} />
+          </button>
+        </div>
       ) : trigger === 'chevron' ? (
         <button
           type="button"
