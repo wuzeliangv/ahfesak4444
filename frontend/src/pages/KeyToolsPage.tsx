@@ -104,6 +104,7 @@ export function KeyToolsPage() {
   const [currentOp, setCurrentOp] = useState<'verify' | 'rotate' | 'quota' | null>(null);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [results, setResults] = useState<ProcessResult[]>([]);
+  const [activeTab, setActiveTab] = useState<'progress' | 'export'>('progress');
 
   const { rows, invalidLines } = useMemo(() => parseKeys(text), [text]);
 
@@ -192,6 +193,7 @@ export function KeyToolsPage() {
     }
     setRunning(true);
     setCurrentOp('verify');
+    setActiveTab('progress');
 
     await runBatch(rows, async (row) => {
       try {
@@ -209,6 +211,7 @@ export function KeyToolsPage() {
     });
 
     setRunning(false);
+    setActiveTab('export');
     toast.success('批量验证完成');
   }
 
@@ -220,6 +223,7 @@ export function KeyToolsPage() {
     }
     setRunning(true);
     setCurrentOp('rotate');
+    setActiveTab('progress');
 
     await runBatch(rows, async (row) => {
       try {
@@ -253,6 +257,7 @@ export function KeyToolsPage() {
     });
 
     setRunning(false);
+    setActiveTab('export');
     toast.success('批量轮换完成');
   }
 
@@ -264,6 +269,7 @@ export function KeyToolsPage() {
     }
     setRunning(true);
     setCurrentOp('quota');
+    setActiveTab('progress');
 
     await runBatch(rows, async (row) => {
       try {
@@ -281,6 +287,7 @@ export function KeyToolsPage() {
     });
 
     setRunning(false);
+    setActiveTab('export');
     toast.success('批量配额查询完成');
   }
 
@@ -389,7 +396,7 @@ export function KeyToolsPage() {
                   value={text}
                   onChange={(e) => setText(e.target.value)}
                   disabled={running}
-                  className="relative glass-input block h-[240px] w-full resize-y rounded-xl px-4 py-3 font-mono text-xs leading-relaxed text-[var(--color-fg-primary)] outline-none placeholder-[var(--color-fg-muted)]/50 focus:ring-1 focus:ring-[var(--color-primary-main)]/40"
+                  className="relative glass-input block h-[380px] w-full resize-y rounded-xl px-4 py-3 font-mono text-xs leading-relaxed text-[var(--color-fg-primary)] outline-none placeholder-[var(--color-fg-muted)]/50 focus:ring-1 focus:ring-[var(--color-primary-main)]/40"
                   placeholder={`# 支持批量智能解析，顺序或分隔符不限
 # 备注(可选)   AccessKey   SecretKey
 # 例如：
@@ -451,53 +458,69 @@ export function KeyToolsPage() {
                 </Button>
               </div>
             </section>
+          </div>
 
-            {/* Export panel */}
-            {!running && exportText && (
-              <section className="glass-panel p-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <div className="mb-2 flex items-center justify-between">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-[var(--color-fg-secondary)] flex items-center gap-1.5">
-                    <Sparkles size={14} className="text-amber-400" />
-                    导出区 ({currentOp === 'rotate' ? '格式替换' : '结果列表'})
+          {/* Right panel: results list/table & export */}
+          <div className="space-y-4 lg:col-span-7">
+            <section className="glass-panel p-4 flex flex-col h-[calc(100vh-140px)] min-h-[500px]">
+              {/* Tab Header */}
+              <div className="mb-3 flex items-center justify-between border-b border-white/5 pb-2">
+                <div className="flex gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('progress')}
+                    className={clsx(
+                      'pb-2 text-sm font-semibold border-b-2 transition-all',
+                      activeTab === 'progress'
+                        ? 'border-[var(--color-primary-main)] text-[var(--color-fg-primary)]'
+                        : 'border-transparent text-[var(--color-fg-muted)] hover:text-[var(--color-fg-primary)]'
+                    )}
+                  >
+                    执行进度
+                  </button>
+                  {exportText && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('export')}
+                      className={clsx(
+                        'pb-2 text-sm font-semibold border-b-2 transition-all flex items-center gap-1.5',
+                        activeTab === 'export'
+                          ? 'border-[var(--color-primary-main)] text-[var(--color-fg-primary)]'
+                          : 'border-transparent text-[var(--color-fg-muted)] hover:text-[var(--color-fg-primary)]'
+                      )}
+                    >
+                      <Sparkles size={13} className="text-amber-400" />
+                      导出结果
+                    </button>
+                  )}
+                </div>
+
+                {activeTab === 'progress' && running && progress && (
+                  <span className="text-xs text-[var(--color-primary-main)] font-mono">
+                    已完成: {progress.done} / {progress.total}
                   </span>
-                  <div className="flex items-center gap-2">
+                )}
+
+                {activeTab === 'export' && (
+                  <div className="flex items-center gap-3">
                     <button
                       onClick={handleCopy}
                       className="text-xs text-[var(--color-primary-main)] hover:underline flex items-center gap-1"
                     >
-                      <Copy size={11} /> 复制
+                      <Copy size={11} /> 复制结果
                     </button>
                     <button
                       onClick={handleDownload}
                       className="text-xs text-[var(--color-primary-main)] hover:underline flex items-center gap-1"
                     >
-                      <FileDown size={11} /> 下载
+                      <FileDown size={11} /> 下载 txt
                     </button>
                   </div>
-                </div>
-                <textarea
-                  readOnly
-                  value={exportText}
-                  className="glass-input block h-[180px] w-full rounded-xl px-4 py-3 font-mono text-xs leading-relaxed text-[var(--color-fg-primary)] outline-none bg-white/[0.01]"
-                />
-              </section>
-            )}
-          </div>
-
-          {/* Right panel: results list/table */}
-          <div className="space-y-4 lg:col-span-7">
-            <section className="glass-panel p-4 flex flex-col h-[calc(100vh-140px)] min-h-[500px]">
-              <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-sm font-semibold">执行任务进度</h2>
-                {running && progress && (
-                  <span className="text-xs text-[var(--color-primary-main)] font-mono">
-                    已完成: {progress.done} / {progress.total}
-                  </span>
                 )}
               </div>
 
               {/* Progress bar */}
-              {running && progress && (
+              {activeTab === 'progress' && running && progress && (
                 <div className="mb-4 h-1.5 w-full rounded-full bg-white/5 overflow-hidden">
                   <div
                     className="h-full bg-gradient-to-r from-[var(--color-primary-main)] to-purple-500 transition-all duration-300"
@@ -506,76 +529,88 @@ export function KeyToolsPage() {
                 </div>
               )}
 
-              {results.length === 0 ? (
-                <div className="flex-1 flex flex-col items-center justify-center text-[var(--color-fg-muted)] space-y-2">
-                  <KeyRound size={32} className="opacity-20" />
-                  <p className="text-sm">暂无数据，请在左侧输入密钥并开始执行任务</p>
-                </div>
-              ) : (
-                <div className="flex-1 overflow-y-auto pr-1">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="border-b border-white/5 text-xs text-[var(--color-fg-muted)] font-medium">
-                        <th className="py-2 w-10">行</th>
-                        <th className="py-2 pl-2">备注</th>
-                        <th className="py-2 pl-2">Access Key</th>
-                        <th className="py-2 pl-2 w-20">状态</th>
-                        <th className="py-2 pl-2">执行结果</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/[0.02]">
-                      {results.map((res) => (
-                        <tr key={res.line} className="text-xs hover:bg-white/[0.01]">
-                          <td className="py-2.5 font-mono text-[var(--color-fg-muted)]">{res.line}</td>
-                          <td className="py-2.5 pl-2 truncate max-w-[100px] font-medium" title={res.remark}>
-                            {res.remark || '—'}
-                          </td>
-                          <td className="py-2.5 pl-2 font-mono" title={res.accessKey}>
-                            {res.accessKey.slice(0, 8)}...
-                          </td>
-                          <td className="py-2.5 pl-2">
-                            {res.status === 'idle' && (
-                              <span className="text-[var(--color-fg-muted)]">等待</span>
-                            )}
-                            {res.status === 'pending' && (
-                              <span className="text-blue-400 flex items-center gap-1">
-                                <Loader2 size={11} className="animate-spin" /> 执行
-                              </span>
-                            )}
-                            {res.status === 'ok' && (
-                              <span className="text-green-500 flex items-center gap-1">
-                                <CheckCircle2 size={11} /> 成功
-                              </span>
-                            )}
-                            {res.status === 'failed' && (
-                              <span className="text-[var(--color-status-error)] flex items-center gap-1">
-                                <XCircle size={11} /> 失败
-                              </span>
-                            )}
-                          </td>
-                          <td
-                            className={clsx(
-                              'py-2.5 pl-2 truncate max-w-[200px]',
-                              res.status === 'ok'
-                                ? 'text-green-400 font-medium'
-                                : res.status === 'failed'
-                                  ? 'text-[var(--color-status-error)] font-medium'
-                                  : 'text-[var(--color-fg-muted)]'
-                            )}
-                            title={res.details}
-                          >
-                            {res.status === 'ok' && res.newAccessKey ? (
-                              <span className="font-mono">
-                                新: {res.newAccessKey.slice(0, 8)}...
-                              </span>
-                            ) : (
-                              res.details || '—'
-                            )}
-                          </td>
+              {/* Tab Content */}
+              {activeTab === 'progress' ? (
+                results.length === 0 ? (
+                  <div className="flex-1 flex flex-col items-center justify-center text-[var(--color-fg-muted)] space-y-2">
+                    <KeyRound size={32} className="opacity-20" />
+                    <p className="text-sm">暂无数据，请在左侧输入密钥并开始执行任务</p>
+                  </div>
+                ) : (
+                  <div className="flex-1 overflow-y-auto pr-1">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-white/5 text-xs text-[var(--color-fg-muted)] font-medium">
+                          <th className="py-2 w-10">行</th>
+                          <th className="py-2 pl-2">备注</th>
+                          <th className="py-2 pl-2">Access Key</th>
+                          <th className="py-2 pl-2 w-20">状态</th>
+                          <th className="py-2 pl-2">执行结果</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y divide-white/[0.02]">
+                        {results.map((res) => (
+                          <tr key={res.line} className="text-xs hover:bg-white/[0.01]">
+                            <td className="py-2.5 font-mono text-[var(--color-fg-muted)]">{res.line}</td>
+                            <td className="py-2.5 pl-2 truncate max-w-[100px] font-medium" title={res.remark}>
+                              {res.remark || '—'}
+                            </td>
+                            <td className="py-2.5 pl-2 font-mono" title={res.accessKey}>
+                              {res.accessKey.slice(0, 8)}...
+                            </td>
+                            <td className="py-2.5 pl-2">
+                              {res.status === 'idle' && (
+                                <span className="text-[var(--color-fg-muted)]">等待</span>
+                              )}
+                              {res.status === 'pending' && (
+                                <span className="text-blue-400 flex items-center gap-1">
+                                  <Loader2 size={11} className="animate-spin" /> 执行
+                                </span>
+                              )}
+                              {res.status === 'ok' && (
+                                <span className="text-green-500 flex items-center gap-1">
+                                  <CheckCircle2 size={11} /> 成功
+                                </span>
+                              )}
+                              {res.status === 'failed' && (
+                                <span className="text-[var(--color-status-error)] flex items-center gap-1">
+                                  <XCircle size={11} /> 失败
+                                </span>
+                              )}
+                            </td>
+                            <td
+                              className={clsx(
+                                'py-2.5 pl-2 truncate max-w-[200px]',
+                                res.status === 'ok'
+                                  ? 'text-green-400 font-medium'
+                                  : res.status === 'failed'
+                                    ? 'text-[var(--color-status-error)] font-medium'
+                                    : 'text-[var(--color-fg-muted)]'
+                              )}
+                              title={res.details}
+                            >
+                              {res.status === 'ok' && res.newAccessKey ? (
+                                <span className="font-mono">
+                                  新: {res.newAccessKey.slice(0, 8)}...
+                                </span>
+                              ) : (
+                                res.details || '—'
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )
+              ) : (
+                <div className="flex-1 flex flex-col h-full">
+                  <textarea
+                    readOnly
+                    value={exportText}
+                    className="flex-1 w-full rounded-xl px-4 py-3 font-mono text-xs leading-relaxed text-[var(--color-fg-primary)] outline-none bg-white/[0.01] border border-white/5 resize-none focus:ring-1 focus:ring-[var(--color-primary-main)]/40"
+                    placeholder="导出结果为空"
+                  />
                 </div>
               )}
             </section>
