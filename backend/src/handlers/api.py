@@ -635,6 +635,12 @@ def _route_iam_keys_delete(body: dict[str, Any]) -> dict[str, Any]:
     return key_rotate.delete_access_key(creds, access_key_id)
 
 
+def _route_iam_keys_rotate_full(body: dict[str, Any]) -> dict[str, Any]:
+    """One-shot rotation: create new AK, verify, delete old AK."""
+    creds = extract_creds(body)
+    return key_rotate.rotate_full(creds)
+
+
 # ---------------------------------------------------------------------------
 # Routing table
 # ---------------------------------------------------------------------------
@@ -686,6 +692,7 @@ ROUTES: dict[tuple[str, str], tuple[Callable[[dict[str, Any]], dict[str, Any]], 
     ("POST", "/iam/keys/list"): (_route_iam_keys_list, True),
     ("POST", "/iam/keys/rotate"): (_route_iam_keys_rotate, True),
     ("POST", "/iam/keys/delete"): (_route_iam_keys_delete, True),
+    ("POST", "/iam/keys/rotate-full"): (_route_iam_keys_rotate_full, True),
     ("POST", "/bedrock/info"): (_route_bedrock_info, True),
 }
 

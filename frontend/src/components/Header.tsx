@@ -28,6 +28,7 @@ import {
   Zap,
   FolderTree,
   Server,
+  KeyRound,
   X,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -205,6 +206,16 @@ export function Header({
           title="多账号 / 多区域部署后端 Lambda 节点(IP 多样性)"
         >
           Lambda
+        </Button>
+
+        <Button
+          onClick={() => navigate('/key-tools')}
+          leadingIcon={<KeyRound size={14} />}
+          size="sm"
+          variant="ghost"
+          title="独立的批量密钥校验、轮换和额度查询工具"
+        >
+          密钥工具
         </Button>
 
         <span className="mx-1 h-5 w-px bg-[var(--color-border-glass)]" aria-hidden />

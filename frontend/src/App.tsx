@@ -18,6 +18,7 @@ import { AccountListPage } from './pages/AccountListPage';
 import { Ec2Page } from './pages/Ec2Page';
 import { LightsailPage } from './pages/LightsailPage';
 import { LambdaDeployPage } from './pages/LambdaDeployPage';
+import { KeyToolsPage } from './pages/KeyToolsPage';
 import { ensureEndpointsLoaded } from './lib/endpoints';
 import { consumeUrlToken, clearSessionToken } from './lib/session';
 import { checkSession } from './lib/deployer';
@@ -78,6 +79,7 @@ export function App() {
         <Routes>
           <Route path="/" element={<AccountListPage />} />
           <Route path="/lambda" element={<LambdaDeployPage />} />
+          <Route path="/key-tools" element={<KeyToolsPage />} />
           <Route path="/account/:id/ec2" element={<Ec2Page />} />
           <Route path="/account/:id/lightsail" element={<LightsailPage />} />
         </Routes>

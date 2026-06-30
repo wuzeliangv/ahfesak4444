@@ -1392,4 +1392,18 @@ export const api = {
       body: withCreds(creds, { access_key_id: accessKeyId }),
       signal,
     }),
+
+  rotateFull: (creds: AccountCredentials, signal?: AbortSignal) =>
+    call<{
+      new_access_key: string;
+      new_secret_key: string;
+      old_access_key: string;
+      old_deleted: boolean;
+      verified: boolean;
+      user_name: string | null;
+      create_date: string | null;
+    }>('/iam/keys/rotate-full', {
+      body: withCreds(creds),
+      signal,
+    }),
 };
