@@ -80,7 +80,7 @@ function parseKeys(text: string): { rows: ParsedRow[]; invalidLines: number[] } 
     }
 
     // 4. Remaining text is remark
-    const remark = line.replace(/[,\t]+/g, ' ').trim().replace(/\s+/g, ' ');
+    const remark = line.replace(/[|,\t;:=]+/g, ' ').trim().replace(/\s+/g, ' ');
 
     rows.push({
       line: lineNo,
