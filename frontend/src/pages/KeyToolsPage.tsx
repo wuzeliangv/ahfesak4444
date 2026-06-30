@@ -36,6 +36,7 @@ interface ProcessResult {
   details: string;
   newAccessKey?: string;
   newSecretKey?: string;
+  countryCode?: string;
 }
 
 const AK_RE = /\bA[KS]IA[A-Z0-9]{16}\b/;
@@ -131,6 +132,22 @@ function updateQuotaInLine(originalText: string, newQuotaStr: string): string {
   return `${trimmed} | ${appendVal}`;
 }
 
+function updateCountryInLine(originalText: string, countryCode?: string): string {
+  if (!countryCode) return originalText;
+
+  // Matches standard 2-letter uppercase country code at the end of the line (e.g. JP, US, CN)
+  const ccPattern = /\b[A-Z]{2}\b\s*$/;
+  if (ccPattern.test(originalText)) {
+    return originalText.replace(ccPattern, countryCode.toUpperCase());
+  }
+
+  const trimmed = originalText.trimEnd();
+  if (trimmed.endsWith('|')) {
+    return `${trimmed} ${countryCode.toUpperCase()}`;
+  }
+  return `${trimmed} | ${countryCode.toUpperCase()}`;
+}
+
 export function KeyToolsPage() {
   usePageTitle('密钥工具箱');
   const navigate = useNavigate();
@@ -164,7 +181,7 @@ export function KeyToolsPage() {
   // Batch runner helper (concurrency limit = 5)
   async function runBatch(
     items: ParsedRow[],
-    fn: (row: ParsedRow) => Promise<{ status: 'ok' | 'failed'; details: string; newAK?: string; newSK?: string }>
+    fn: (row: ParsedRow) => Promise<{ status: 'ok' | 'failed'; details: string; newAK?: string; newSK?: string; countryCode?: string }>
   ) {
     const BATCH_SIZE = 5;
     const total = items.length;
@@ -195,6 +212,7 @@ export function KeyToolsPage() {
                     details: out.details,
                     newAccessKey: out.newAK,
                     newSecretKey: out.newSK,
+                    countryCode: out.countryCode,
                   };
                 }
                 return res;
@@ -236,7 +254,8 @@ export function KeyToolsPage() {
         const v = await api.verify({ accessKey: row.accessKey, secretKey: row.secretKey });
         return {
           status: 'ok',
-          details: `有效 (${v.account_id}${v.is_root ? ' / Root' : ''})`,
+          details: `有效 (${v.account_id}${v.is_root ? ' / Root' : ''}${v.country_code ? ' / ' + v.country_code : ''})`,
+          countryCode: v.country_code || undefined,
         };
       } catch (e) {
         return {
@@ -312,7 +331,8 @@ export function KeyToolsPage() {
         const q = await api.quotaRegion({ accessKey: row.accessKey, secretKey: row.secretKey }, 'us-east-1');
         return {
           status: 'ok',
-          details: `${q.value != null ? q.value + ' vCPUs' : '无限制'}`,
+          details: `${q.value != null ? q.value + ' vCPUs' : '无限制'}${q.country_code ? ' (' + q.country_code + ')' : ''}`,
+          countryCode: q.country_code || undefined,
         };
       } catch (e) {
         return {
@@ -343,13 +363,18 @@ export function KeyToolsPage() {
         }
 
         if (currentOp === 'verify') {
-          const prefix = res.remark ? `${res.remark} | ` : '';
-          return `${prefix}${res.accessKey} | ${res.secretKey} | ${res.status === 'ok' ? '有效' : '无效'} | ${res.details}`;
+          if (res.status === 'ok') {
+            const prefix = res.remark ? `${res.remark} | ` : '';
+            const verifyLine = `${prefix}${res.accessKey} | ${res.secretKey} | 有效`;
+            return updateCountryInLine(verifyLine, res.countryCode);
+          }
+          return `${res.originalText} | 验证失败: ${res.details}`;
         }
 
         if (currentOp === 'quota') {
           if (res.status === 'ok') {
-            return updateQuotaInLine(res.originalText, res.details);
+            const quotaLine = updateQuotaInLine(res.originalText, res.details);
+            return updateCountryInLine(quotaLine, res.countryCode);
           }
           return `${res.originalText} | 查询失败: ${res.details}`;
         }

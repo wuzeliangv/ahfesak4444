@@ -51,13 +51,15 @@ _ASYNC_CFG = Config(
 def get_vcpu_quota(creds: Creds, region: str, quota_code: str = STANDARD_VCPU_QUOTA) -> dict[str, Any]:
     """Fetch a single region's vCPU quota. Synchronous — used by single-region UI calls."""
     sq = get_client(creds, "service-quotas", region)
+    from src.services.accounts import _registered_country
+    cc = _registered_country(creds)
     try:
         resp = sq.get_service_quota(ServiceCode="ec2", QuotaCode=quota_code)
     except ClientError as e:
         code = e.response.get("Error", {}).get("Code", "Unknown")
         # NoSuchResourceException = quota not applicable in this region
         if code == "NoSuchResourceException":
-            return {"region": region, "quota_code": quota_code, "value": None, "name": None}
+            return {"region": region, "quota_code": quota_code, "value": None, "name": None, "country_code": cc}
         if code in _CRED_ERROR_CODES:
             raise InvalidCredentials("AWS 接口错误: 账号密钥无效或已被禁用 (UnrecognizedClientException: The security token included in the request is invalid.)") from e
         raise UpstreamError(f"get_service_quota failed in {region}: {code}") from e
@@ -69,6 +71,7 @@ def get_vcpu_quota(creds: Creds, region: str, quota_code: str = STANDARD_VCPU_QU
         "value": q["Value"],
         "name": q["QuotaName"],
         "adjustable": q.get("Adjustable", False),
+        "country_code": cc,
     }
 
 

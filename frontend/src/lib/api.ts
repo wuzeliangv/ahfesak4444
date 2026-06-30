@@ -65,6 +65,7 @@ export interface QuotaRegionData {
   value: number | null;
   name: string | null;
   adjustable?: boolean;
+  country_code?: string | null;
 }
 
 export interface QuotaPerRegion {
