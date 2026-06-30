@@ -370,249 +370,245 @@ export function KeyToolsPage() {
         </div>
 
         {/* ---------- Main Content Grid ---------- */}
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:h-[calc(100vh-140px)] lg:min-h-[550px]">
           {/* Left panel: textarea input */}
-          <div className="space-y-4 lg:col-span-5">
-            <section className="glass-panel p-4">
-              <div className="mb-2 flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase tracking-wider text-[var(--color-fg-secondary)] flex items-center gap-1.5">
-                  <FileText size={14} /> 密钥输入区
+          <section className="glass-panel p-4 flex flex-col h-[520px] lg:h-full">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider text-[var(--color-fg-secondary)] flex items-center gap-1.5">
+                <FileText size={14} /> 密钥输入区
+              </span>
+              {rows.length > 0 && (
+                <span className="text-xs text-green-500 font-medium animate-in fade-in">
+                  已识别 {rows.length} 对密钥
                 </span>
-                {rows.length > 0 && (
-                  <span className="text-xs text-green-500 font-medium animate-in fade-in">
-                    已识别 {rows.length} 对密钥
-                  </span>
-                )}
-                {invalidLines.length > 0 && (
-                  <span className="text-xs text-amber-500 font-medium animate-in fade-in" title={`第 ${invalidLines.join(', ')} 行格式无法识别`}>
-                    格式未识别 {invalidLines.length} 行
-                  </span>
-                )}
-              </div>
+              )}
+              {invalidLines.length > 0 && (
+                <span className="text-xs text-amber-500 font-medium animate-in fade-in" title={`第 ${invalidLines.join(', ')} 行格式无法识别`}>
+                  格式未识别 {invalidLines.length} 行
+                </span>
+              )}
+            </div>
 
-              <div className="relative group">
-                <div className="absolute -inset-0.5 rounded-xl bg-gradient-to-br from-[var(--color-primary-main)] to-purple-500 opacity-[0.1] group-focus-within:opacity-25 transition-opacity duration-300"></div>
-                <textarea
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
-                  disabled={running}
-                  className="relative glass-input block h-[380px] w-full resize-y rounded-xl px-4 py-3 font-mono text-xs leading-relaxed text-[var(--color-fg-primary)] outline-none placeholder-[var(--color-fg-muted)]/50 focus:ring-1 focus:ring-[var(--color-primary-main)]/40"
-                  placeholder={`# 支持批量智能解析，顺序或分隔符不限
+            <div className="relative group flex-1 min-h-0">
+              <div className="absolute -inset-0.5 rounded-xl bg-gradient-to-br from-[var(--color-primary-main)] to-purple-500 opacity-[0.1] group-focus-within:opacity-25 transition-opacity duration-300"></div>
+              <textarea
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                disabled={running}
+                className="relative glass-input block h-full w-full resize-none rounded-xl px-4 py-3 font-mono text-xs leading-relaxed text-[var(--color-fg-primary)] outline-none placeholder-[var(--color-fg-muted)]/50 focus:ring-1 focus:ring-[var(--color-primary-main)]/40 bg-white/[0.01]"
+                placeholder={`# 支持批量智能解析，顺序或分隔符不限
 # 备注(可选)   AccessKey   SecretKey
 # 例如：
 小号A  AKIAIOSFODNN7EXAMPLE  wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY`}
-                  spellCheck={false}
-                  autoComplete="off"
-                />
-              </div>
+                spellCheck={false}
+                autoComplete="off"
+              />
+            </div>
 
-              {/* Action Buttons */}
-              <div className="mt-4 flex flex-wrap gap-2.5">
-                <Button
-                  onClick={handleVerify}
-                  disabled={running || rows.length === 0}
-                  variant="primary"
-                  size="sm"
-                  className="flex-1 min-w-[100px]"
-                >
-                  {running && currentOp === 'verify' ? (
-                    <>
-                      <Loader2 size={13} className="animate-spin mr-1.5" />
-                      验证中...
-                    </>
-                  ) : (
-                    '批量验证'
-                  )}
-                </Button>
-                <Button
-                  onClick={handleRotate}
-                  disabled={running || rows.length === 0}
-                  variant="primary"
-                  size="sm"
-                  className="flex-1 min-w-[100px] !bg-gradient-to-r !from-indigo-600 !to-purple-600 hover:brightness-110"
-                >
-                  {running && currentOp === 'rotate' ? (
-                    <>
-                      <Loader2 size={13} className="animate-spin mr-1.5" />
-                      轮换中...
-                    </>
-                  ) : (
-                    '批量轮换'
-                  )}
-                </Button>
-                <Button
-                  onClick={handleQuota}
-                  disabled={running || rows.length === 0}
-                  variant="outline"
-                  size="sm"
-                  className="flex-1 min-w-[100px]"
-                >
-                  {running && currentOp === 'quota' ? (
-                    <>
-                      <Loader2 size={13} className="animate-spin mr-1.5" />
-                      查询中...
-                    </>
-                  ) : (
-                    '查配额(美东)'
-                  )}
-                </Button>
-              </div>
-            </section>
-          </div>
+            {/* Action Buttons */}
+            <div className="mt-4 flex flex-wrap gap-2.5">
+              <Button
+                onClick={handleVerify}
+                disabled={running || rows.length === 0}
+                variant="primary"
+                size="sm"
+                className="flex-1 min-w-[100px]"
+              >
+                {running && currentOp === 'verify' ? (
+                  <>
+                    <Loader2 size={13} className="animate-spin mr-1.5" />
+                    验证中...
+                  </>
+                ) : (
+                  '批量验证'
+                )}
+              </Button>
+              <Button
+                onClick={handleRotate}
+                disabled={running || rows.length === 0}
+                variant="primary"
+                size="sm"
+                className="flex-1 min-w-[100px] !bg-gradient-to-r !from-indigo-600 !to-purple-600 hover:brightness-110"
+              >
+                {running && currentOp === 'rotate' ? (
+                  <>
+                    <Loader2 size={13} className="animate-spin mr-1.5" />
+                    轮换中...
+                  </>
+                ) : (
+                  '批量轮换'
+                )}
+              </Button>
+              <Button
+                onClick={handleQuota}
+                disabled={running || rows.length === 0}
+                variant="outline"
+                size="sm"
+                className="flex-1 min-w-[100px]"
+              >
+                {running && currentOp === 'quota' ? (
+                  <>
+                    <Loader2 size={13} className="animate-spin mr-1.5" />
+                    查询中...
+                  </>
+                ) : (
+                  '查配额(美东)'
+                )}
+              </Button>
+            </div>
+          </section>
 
           {/* Right panel: results list/table & export */}
-          <div className="space-y-4 lg:col-span-7">
-            <section className="glass-panel p-4 flex flex-col h-[calc(100vh-140px)] min-h-[500px]">
-              {/* Tab Header */}
-              <div className="mb-3 flex items-center justify-between border-b border-white/5 pb-2">
-                <div className="flex gap-4">
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('progress')}
-                    className={clsx(
-                      'pb-2 text-sm font-semibold border-b-2 transition-all',
-                      activeTab === 'progress'
-                        ? 'border-[var(--color-primary-main)] text-[var(--color-fg-primary)]'
-                        : 'border-transparent text-[var(--color-fg-muted)] hover:text-[var(--color-fg-primary)]'
-                    )}
-                  >
-                    执行进度
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('export')}
-                    className={clsx(
-                      'pb-2 text-sm font-semibold border-b-2 transition-all flex items-center gap-1.5',
-                      activeTab === 'export'
-                        ? 'border-[var(--color-primary-main)] text-[var(--color-fg-primary)]'
-                        : 'border-transparent text-[var(--color-fg-muted)] hover:text-[var(--color-fg-primary)]'
-                    )}
-                  >
-                    <Sparkles size={13} className="text-amber-400" />
-                    导出结果
-                  </button>
-                </div>
-
-                {activeTab === 'progress' && running && progress && (
-                  <span className="text-xs text-[var(--color-primary-main)] font-mono">
-                    已完成: {progress.done} / {progress.total}
-                  </span>
-                )}
-
-                {activeTab === 'export' && exportText && (
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={handleCopy}
-                      className="text-xs text-[var(--color-primary-main)] hover:underline flex items-center gap-1"
-                    >
-                      <Copy size={11} /> 复制结果
-                    </button>
-                    <button
-                      onClick={handleDownload}
-                      className="text-xs text-[var(--color-primary-main)] hover:underline flex items-center gap-1"
-                    >
-                      <FileDown size={11} /> 下载 txt
-                    </button>
-                  </div>
-                )}
+          <section className="glass-panel p-4 flex flex-col h-[520px] lg:h-full min-h-0">
+            {/* Tab Header */}
+            <div className="mb-3 flex items-center justify-between border-b border-white/5 pb-2">
+              <div className="flex gap-4">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('progress')}
+                  className={clsx(
+                    'pb-2 text-sm font-semibold border-b-2 transition-all',
+                    activeTab === 'progress'
+                      ? 'border-[var(--color-primary-main)] text-[var(--color-fg-primary)]'
+                      : 'border-transparent text-[var(--color-fg-muted)] hover:text-[var(--color-fg-primary)]'
+                  )}
+                >
+                  执行进度
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('export')}
+                  className={clsx(
+                    'pb-2 text-sm font-semibold border-b-2 transition-all flex items-center gap-1.5',
+                    activeTab === 'export'
+                      ? 'border-[var(--color-primary-main)] text-[var(--color-fg-primary)]'
+                      : 'border-transparent text-[var(--color-fg-muted)] hover:text-[var(--color-fg-primary)]'
+                  )}
+                >
+                  <Sparkles size={13} className="text-amber-400" />
+                  导出结果
+                </button>
               </div>
 
-              {/* Progress bar */}
               {activeTab === 'progress' && running && progress && (
-                <div className="mb-4 h-1.5 w-full rounded-full bg-white/5 overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-[var(--color-primary-main)] to-purple-500 transition-all duration-300"
-                    style={{ width: `${(progress.done / progress.total) * 100}%` }}
-                  />
-                </div>
+                <span className="text-xs text-[var(--color-primary-main)] font-mono">
+                  已完成: {progress.done} / {progress.total}
+                </span>
               )}
 
-              {/* Tab Content */}
-              {activeTab === 'progress' ? (
-                results.length === 0 ? (
-                  <div className="flex-1 flex flex-col items-center justify-center text-[var(--color-fg-muted)] space-y-2">
-                    <KeyRound size={32} className="opacity-20" />
-                    <p className="text-sm">暂无数据，请在左侧输入密钥并开始执行任务</p>
-                  </div>
-                ) : (
-                  <div className="flex-1 overflow-y-auto pr-1">
-                    <table className="w-full text-left border-collapse">
-                      <thead>
-                        <tr className="border-b border-white/5 text-xs text-[var(--color-fg-muted)] font-medium">
-                          <th className="py-2 w-10">行</th>
-                          <th className="py-2 pl-2">备注</th>
-                          <th className="py-2 pl-2">Access Key</th>
-                          <th className="py-2 pl-2 w-20">状态</th>
-                          <th className="py-2 pl-2">执行结果</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-white/[0.02]">
-                        {results.map((res) => (
-                          <tr key={res.line} className="text-xs hover:bg-white/[0.01]">
-                            <td className="py-2.5 font-mono text-[var(--color-fg-muted)]">{res.line}</td>
-                            <td className="py-2.5 pl-2 truncate max-w-[100px] font-medium" title={res.remark}>
-                              {res.remark || '—'}
-                            </td>
-                            <td className="py-2.5 pl-2 font-mono" title={res.accessKey}>
-                              {res.accessKey.slice(0, 8)}...
-                            </td>
-                            <td className="py-2.5 pl-2">
-                              {res.status === 'idle' && (
-                                <span className="text-[var(--color-fg-muted)]">等待</span>
-                              )}
-                              {res.status === 'pending' && (
-                                <span className="text-blue-400 flex items-center gap-1">
-                                  <Loader2 size={11} className="animate-spin" /> 执行
-                                </span>
-                              )}
-                              {res.status === 'ok' && (
-                                <span className="text-green-500 flex items-center gap-1">
-                                  <CheckCircle2 size={11} /> 成功
-                                </span>
-                              )}
-                              {res.status === 'failed' && (
-                                <span className="text-[var(--color-status-error)] flex items-center gap-1">
-                                  <XCircle size={11} /> 失败
-                                </span>
-                              )}
-                            </td>
-                            <td
-                              className={clsx(
-                                'py-2.5 pl-2 truncate max-w-[200px]',
-                                res.status === 'ok'
-                                  ? 'text-green-400 font-medium'
-                                  : res.status === 'failed'
-                                    ? 'text-[var(--color-status-error)] font-medium'
-                                    : 'text-[var(--color-fg-muted)]'
-                              )}
-                              title={res.details}
-                            >
-                              {res.status === 'ok' && res.newAccessKey ? (
-                                <span className="font-mono">
-                                  新: {res.newAccessKey.slice(0, 8)}...
-                                </span>
-                              ) : (
-                                res.details || '—'
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )
-              ) : (
-                <div className="flex-1 flex flex-col h-full">
-                  <textarea
-                    readOnly
-                    value={exportText || '等待批量验证、轮换或查询配额执行完成后，结果将在此处自动生成。'}
-                    className="flex-1 w-full rounded-xl px-4 py-3 font-mono text-xs leading-relaxed text-[var(--color-fg-primary)] outline-none bg-white/[0.01] border border-white/5 resize-none focus:ring-1 focus:ring-[var(--color-primary-main)]/40"
-                    placeholder="导出结果为空"
-                  />
+              {activeTab === 'export' && exportText && (
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={handleCopy}
+                    className="text-xs text-[var(--color-primary-main)] hover:underline flex items-center gap-1"
+                  >
+                    <Copy size={11} /> 复制结果
+                  </button>
+                  <button
+                    onClick={handleDownload}
+                    className="text-xs text-[var(--color-primary-main)] hover:underline flex items-center gap-1"
+                  >
+                    <FileDown size={11} /> 下载 txt
+                  </button>
                 </div>
               )}
-            </section>
-          </div>
+            </div>
+
+            {/* Progress bar */}
+            {activeTab === 'progress' && running && progress && (
+              <div className="mb-4 h-1.5 w-full rounded-full bg-white/5 overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-[var(--color-primary-main)] to-purple-500 transition-all duration-300"
+                  style={{ width: `${(progress.done / progress.total) * 100}%` }}
+                />
+              </div>
+            )}
+
+            {/* Tab Content */}
+            {activeTab === 'progress' ? (
+              results.length === 0 ? (
+                <div className="flex-1 flex flex-col items-center justify-center text-[var(--color-fg-muted)] space-y-2">
+                  <KeyRound size={32} className="opacity-20" />
+                  <p className="text-sm">暂无数据，请在左侧输入密钥并开始执行任务</p>
+                </div>
+              ) : (
+                <div className="flex-1 overflow-y-auto pr-1 min-h-0">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-white/5 text-xs text-[var(--color-fg-muted)] font-medium">
+                        <th className="py-2 w-10">行</th>
+                        <th className="py-2 pl-2">备注</th>
+                        <th className="py-2 pl-2">Access Key</th>
+                        <th className="py-2 pl-2 w-20">状态</th>
+                        <th className="py-2 pl-2">执行结果</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/[0.02]">
+                      {results.map((res) => (
+                        <tr key={res.line} className="text-xs hover:bg-white/[0.01]">
+                          <td className="py-2.5 font-mono text-[var(--color-fg-muted)]">{res.line}</td>
+                          <td className="py-2.5 pl-2 truncate max-w-[100px] font-medium" title={res.remark}>
+                            {res.remark || '—'}
+                          </td>
+                          <td className="py-2.5 pl-2 font-mono" title={res.accessKey}>
+                            {res.accessKey.slice(0, 8)}...
+                          </td>
+                          <td className="py-2.5 pl-2">
+                            {res.status === 'idle' && (
+                              <span className="text-[var(--color-fg-muted)]">等待</span>
+                            )}
+                            {res.status === 'pending' && (
+                              <span className="text-blue-400 flex items-center gap-1">
+                                <Loader2 size={11} className="animate-spin" /> 执行
+                              </span>
+                            )}
+                            {res.status === 'ok' && (
+                              <span className="text-green-500 flex items-center gap-1">
+                                <CheckCircle2 size={11} /> 成功
+                              </span>
+                            )}
+                            {res.status === 'failed' && (
+                              <span className="text-[var(--color-status-error)] flex items-center gap-1">
+                                <XCircle size={11} /> 失败
+                              </span>
+                            )}
+                          </td>
+                          <td
+                            className={clsx(
+                              'py-2.5 pl-2 truncate max-w-[200px]',
+                              res.status === 'ok'
+                                ? 'text-green-400 font-medium'
+                                : res.status === 'failed'
+                                  ? 'text-[var(--color-status-error)] font-medium'
+                                  : 'text-[var(--color-fg-muted)]'
+                            )}
+                            title={res.details}
+                          >
+                            {res.status === 'ok' && res.newAccessKey ? (
+                              <span className="font-mono">
+                                新: {res.newAccessKey.slice(0, 8)}...
+                              </span>
+                            ) : (
+                              res.details || '—'
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )
+            ) : (
+              <div className="flex-1 flex flex-col h-full min-h-0">
+                <textarea
+                  readOnly
+                  value={exportText || '等待批量验证、轮换或查询配额执行完成后，结果将在此处自动生成。'}
+                  className="flex-1 w-full rounded-xl px-4 py-3 font-mono text-xs leading-relaxed text-[var(--color-fg-primary)] outline-none bg-white/[0.01] border border-white/5 resize-none focus:ring-1 focus:ring-[var(--color-primary-main)]/40"
+                  placeholder="导出结果为空"
+                />
+              </div>
+            )}
+          </section>
         </div>
       </main>
     </div>
