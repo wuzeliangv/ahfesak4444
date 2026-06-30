@@ -123,7 +123,7 @@ export function KeyToolsPage() {
         }))
       );
     }
-  }, [rows, running]);
+  }, [rows]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Batch runner helper (concurrency limit = 5)
   async function runBatch(
