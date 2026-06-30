@@ -95,6 +95,39 @@ function parseKeys(text: string): { rows: ParsedRow[]; invalidLines: number[] } 
   return { rows, invalidLines };
 }
 
+function updateQuotaInLine(originalText: string, newQuotaStr: string): string {
+  // Matches patterns like: 8V, 8 v, 8vcpus, 32 vCPUs
+  const quotaPattern = /\b\d+\s*[vV](([cC][pP][uU][sS])|s)?\b/gi;
+
+  const matches = originalText.match(quotaPattern);
+  if (matches && matches.length > 0) {
+    const oldQuotaStr = matches[matches.length - 1]; // last match in the line (usually the quota)
+    const unitMatch = oldQuotaStr.match(/[vV].*$/);
+    const unit = unitMatch ? unitMatch[0] : 'V'; // preserve unit like 'V', 'vcpus', 'vCPUs'
+
+    // Extract number from newQuotaStr (e.g., "32 vCPUs" -> 32)
+    const numMatch = newQuotaStr.match(/^\d+/);
+    const replacement = numMatch ? `${numMatch[0]}${unit}` : newQuotaStr;
+
+    // Replace only the last occurrence of oldQuotaStr in the line
+    const lastIndex = originalText.lastIndexOf(oldQuotaStr);
+    if (lastIndex !== -1) {
+      return (
+        originalText.substring(0, lastIndex) +
+        replacement +
+        originalText.substring(lastIndex + oldQuotaStr.length)
+      );
+    }
+  }
+
+  // Fallback: append cleanly at the end
+  const trimmed = originalText.trimEnd();
+  if (trimmed.endsWith('|')) {
+    return `${trimmed} ${newQuotaStr}`;
+  }
+  return `${trimmed} | ${newQuotaStr}`;
+}
+
 export function KeyToolsPage() {
   usePageTitle('密钥工具箱');
   const navigate = useNavigate();
@@ -312,8 +345,10 @@ export function KeyToolsPage() {
         }
 
         if (currentOp === 'quota') {
-          const prefix = res.remark ? `${res.remark} | ` : '';
-          return `${prefix}${res.accessKey} | ${res.secretKey} | ${res.status === 'ok' ? res.details : '查询失败: ' + res.details}`;
+          if (res.status === 'ok') {
+            return updateQuotaInLine(res.originalText, res.details);
+          }
+          return `${res.originalText} | 查询失败: ${res.details}`;
         }
 
         return res.originalText;
