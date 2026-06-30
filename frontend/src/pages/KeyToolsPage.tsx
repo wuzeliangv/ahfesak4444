@@ -120,12 +120,15 @@ function updateQuotaInLine(originalText: string, newQuotaStr: string): string {
     }
   }
 
-  // Fallback: append cleanly at the end
+  // Fallback: append cleanly at the end, formatting standard "8 vCPUs" to "8V" by default
   const trimmed = originalText.trimEnd();
+  const numMatch = newQuotaStr.match(/^\d+/);
+  const appendVal = numMatch ? `${numMatch[0]}V` : newQuotaStr;
+
   if (trimmed.endsWith('|')) {
-    return `${trimmed} ${newQuotaStr}`;
+    return `${trimmed} ${appendVal}`;
   }
-  return `${trimmed} | ${newQuotaStr}`;
+  return `${trimmed} | ${appendVal}`;
 }
 
 export function KeyToolsPage() {
