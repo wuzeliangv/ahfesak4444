@@ -239,36 +239,6 @@ export function KeyToolsPage() {
     }
   }
 
-  // 1. Batch Verify
-  async function handleVerify() {
-    if (rows.length === 0) {
-      toast.warning('请先粘贴有效的密钥对');
-      return;
-    }
-    setRunning(true);
-    setCurrentOp('verify');
-    setActiveTab('progress');
-
-    await runBatch(rows, async (row) => {
-      try {
-        const v = await api.verify({ accessKey: row.accessKey, secretKey: row.secretKey });
-        return {
-          status: 'ok',
-          details: `有效 (${v.account_id}${v.is_root ? ' / Root' : ''}${v.country_code ? ' / ' + v.country_code : ''})`,
-          countryCode: v.country_code || undefined,
-        };
-      } catch (e) {
-        return {
-          status: 'failed',
-          details: (e as Error).message || '验证失败',
-        };
-      }
-    });
-
-    setRunning(false);
-    setActiveTab('export');
-    toast.success('批量验证完成');
-  }
 
   // 2. Batch Rotate
   async function handleRotate() {
@@ -470,22 +440,6 @@ export function KeyToolsPage() {
 
             {/* Action Buttons */}
             <div className="mt-4 flex flex-wrap gap-2.5">
-              <Button
-                onClick={handleVerify}
-                disabled={running || rows.length === 0}
-                variant="primary"
-                size="sm"
-                className="flex-1 min-w-[100px]"
-              >
-                {running && currentOp === 'verify' ? (
-                  <>
-                    <Loader2 size={13} className="animate-spin mr-1.5" />
-                    验证中...
-                  </>
-                ) : (
-                  '批量验证'
-                )}
-              </Button>
               <Button
                 onClick={handleRotate}
                 disabled={running || rows.length === 0}
