@@ -478,21 +478,19 @@ export function KeyToolsPage() {
                   >
                     执行进度
                   </button>
-                  {exportText && (
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('export')}
-                      className={clsx(
-                        'pb-2 text-sm font-semibold border-b-2 transition-all flex items-center gap-1.5',
-                        activeTab === 'export'
-                          ? 'border-[var(--color-primary-main)] text-[var(--color-fg-primary)]'
-                          : 'border-transparent text-[var(--color-fg-muted)] hover:text-[var(--color-fg-primary)]'
-                      )}
-                    >
-                      <Sparkles size={13} className="text-amber-400" />
-                      导出结果
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('export')}
+                    className={clsx(
+                      'pb-2 text-sm font-semibold border-b-2 transition-all flex items-center gap-1.5',
+                      activeTab === 'export'
+                        ? 'border-[var(--color-primary-main)] text-[var(--color-fg-primary)]'
+                        : 'border-transparent text-[var(--color-fg-muted)] hover:text-[var(--color-fg-primary)]'
+                    )}
+                  >
+                    <Sparkles size={13} className="text-amber-400" />
+                    导出结果
+                  </button>
                 </div>
 
                 {activeTab === 'progress' && running && progress && (
@@ -501,7 +499,7 @@ export function KeyToolsPage() {
                   </span>
                 )}
 
-                {activeTab === 'export' && (
+                {activeTab === 'export' && exportText && (
                   <div className="flex items-center gap-3">
                     <button
                       onClick={handleCopy}
@@ -607,7 +605,7 @@ export function KeyToolsPage() {
                 <div className="flex-1 flex flex-col h-full">
                   <textarea
                     readOnly
-                    value={exportText}
+                    value={exportText || '等待批量验证、轮换或查询配额执行完成后，结果将在此处自动生成。'}
                     className="flex-1 w-full rounded-xl px-4 py-3 font-mono text-xs leading-relaxed text-[var(--color-fg-primary)] outline-none bg-white/[0.01] border border-white/5 resize-none focus:ring-1 focus:ring-[var(--color-primary-main)]/40"
                     placeholder="导出结果为空"
                   />
