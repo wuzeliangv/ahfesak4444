@@ -1500,4 +1500,10 @@ export const api = {
       body: withCreds(creds),
       signal,
     }),
+
+  orgAccountsClose: (creds: AccountCredentials, subAccountId: string, signal?: AbortSignal) =>
+    call<{ status: string; account_id: string }>('/org/accounts/close', {
+      body: withCreds(creds, { sub_account_id: subAccountId }),
+      signal,
+    }),
 };

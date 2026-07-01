@@ -81,6 +81,7 @@ export function OrganizationsPage() {
 
   // Key generation states
   const [generatingKeyId, setGeneratingKeyId] = useState<string | null>(null);
+  const [closingAccountId, setClosingAccountId] = useState<string | null>(null);
   const [exportedKeysText, setExportedKeysText] = useState('');
   const [showExportModal, setShowExportModal] = useState(false);
 
@@ -334,6 +335,29 @@ export function OrganizationsPage() {
       toast.error((e as Error).message || '生成密钥失败');
     } finally {
       setGeneratingKeyId(null);
+    }
+  };
+
+  // Close member account manually
+  const handleCloseAccount = async (subAccountId: string, accountName: string) => {
+    if (!selectedAccountId) return;
+    const confirmed = window.confirm(
+      `⚠️⚠️⚠️ 警告：确定要关闭子账号「${accountName} (${subAccountId})」吗？\n\n该操作将直接关闭该 AWS 账号并终止其所有服务，属于高风险不可逆操作，请务必谨慎确认！`
+    );
+    if (!confirmed) return;
+
+    setClosingAccountId(subAccountId);
+    try {
+      const creds = await getAccountCredentials(selectedAccountId);
+      await api.orgAccountsClose(creds, subAccountId);
+      toast.success(`子账号 ${accountName} 关闭申请提交成功！`);
+      
+      // Refresh list
+      fetchOrgDetails(selectedAccountId);
+    } catch (e) {
+      toast.error((e as Error).message || '关闭账号失败');
+    } finally {
+      setClosingAccountId(null);
     }
   };
 
@@ -670,10 +694,10 @@ export function OrganizationsPage() {
                                   {acc.status}
                                 </span>
                               </td>
-                              <td className="py-3 pl-2 text-right">
+                               <td className="py-3 pl-2 text-right flex items-center justify-end gap-2">
                                 <Button
                                   onClick={() => handleGenerateKeys(acc.id, acc.name)}
-                                  disabled={generatingKeyId === acc.id}
+                                  disabled={generatingKeyId === acc.id || closingAccountId === acc.id}
                                   variant="outline"
                                   size="sm"
                                   className="text-xs flex items-center gap-1 inline-flex hover:!bg-[var(--color-primary-main)]/10"
@@ -684,6 +708,19 @@ export function OrganizationsPage() {
                                     <Key size={10} />
                                   )}
                                   生成/导出密钥
+                                </Button>
+                                <Button
+                                  onClick={() => handleCloseAccount(acc.id, acc.name)}
+                                  disabled={generatingKeyId === acc.id || closingAccountId === acc.id}
+                                  variant="danger"
+                                  size="sm"
+                                  className="text-xs flex items-center gap-1 inline-flex hover:brightness-110"
+                                >
+                                  {closingAccountId === acc.id ? (
+                                    <Loader2 size={10} className="animate-spin" />
+                                  ) : (
+                                    '关闭账号'
+                                  )}
                                 </Button>
                               </td>
                             </tr>

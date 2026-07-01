@@ -268,3 +268,17 @@ def create_master_iam_admin(creds: Creds, admin_user_name: str = "aws-panel-org-
         }
     except ClientError as e:
         raise UpstreamError(f"在主账号中生成 Access Key 失败: {e}")
+
+def close_sub_account(creds: Creds, sub_account_id: str) -> dict[str, Any]:
+    """Close a member account in the organization."""
+    if not sub_account_id:
+        raise BadRequest("参数缺失: sub_account_id")
+    org_client = _get_org_client(creds)
+    try:
+        org_client.close_account(AccountId=sub_account_id)
+        return {"status": "ok", "account_id": sub_account_id}
+    except ClientError as e:
+        code = e.response.get("Error", {}).get("Code", "Unknown")
+        msg = e.response.get("Error", {}).get("Message", str(e))
+        raise UpstreamError(f"关闭子账号失败: {code} - {msg}")
+
