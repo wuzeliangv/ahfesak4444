@@ -26,7 +26,6 @@ import {
   Download,
   ArchiveRestore,
   Zap,
-  FolderTree,
   Server,
   KeyRound,
   X,
@@ -52,7 +51,6 @@ interface Props {
   onExport: () => void;
   onImport: () => void;
   onRefreshAllQuotas: () => void;
-  onOpenGroups: () => void;
   /** Currently-committed search query (empty string = no filter). */
   search: string;
   onSearchCommit: (v: string) => void;
@@ -72,7 +70,6 @@ export function Header({
   onExport,
   onImport,
   onRefreshAllQuotas,
-  onOpenGroups,
   search,
   onSearchCommit,
 }: Props) {
@@ -190,14 +187,6 @@ export function Header({
           )}
         </form>
 
-        <Button
-          onClick={onOpenGroups}
-          leadingIcon={<FolderTree size={14} />}
-          size="sm"
-          variant="ghost"
-        >
-          分组
-        </Button>
 
         <Button
           onClick={() => navigate('/lambda')}

@@ -12,12 +12,12 @@
  */
 
 import { useEffect, useState, type FormEvent } from 'react';
-import { Eye, EyeOff, AlertCircle, KeyRound, Lock, MapPin, Tag, Layers, Share2 } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle, KeyRound, Lock, MapPin, Tag, Share2 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Modal } from './ui/Modal';
 import { Input } from './ui/Input';
 import { Button } from './ui/Button';
-import { addAccount, listGroups, updateAccount, type AccountInput } from '@/lib/vault';
+import { addAccount, updateAccount, type AccountInput } from '@/lib/vault';
 import { type AccountRecord } from '@/lib/db';
 import { api, ApiError } from '@/lib/api';
 import { REGIONS, regionInfo } from '@/lib/regions';
@@ -33,8 +33,6 @@ interface Props {
 export function AccountFormModal({ open, onClose, account }: Props) {
   const qc = useQueryClient();
   const isEdit = !!account;
-  const groupsQ = useQuery({ queryKey: ['groups'], queryFn: listGroups, enabled: open });
-  const groups = groupsQ.data ?? [];
 
   // Available egress nodes (regions that have a deployed worker).
   const depQ = useQuery({
@@ -50,7 +48,6 @@ export function AccountFormModal({ open, onClose, account }: Props) {
   const [accessKey, setAccessKey] = useState('');
   const [secretKey, setSecretKey] = useState('');
   const [defaultRegion, setDefaultRegion] = useState('us-east-1');
-  const [group, setGroup] = useState('');
   const [note, setNote] = useState('');
   const [pinnedRegion, setPinnedRegion] = useState('');
   const [showSecret, setShowSecret] = useState(false);
@@ -67,7 +64,6 @@ export function AccountFormModal({ open, onClose, account }: Props) {
       setAccessKey('');                      // never display existing AK
       setSecretKey('');                      // never display existing SK
       setDefaultRegion(account.defaultRegion);
-      setGroup(account.group ?? '');
       setNote(account.note ?? '');
       setPinnedRegion(account.pinnedRegion ?? '');
     } else {
@@ -75,7 +71,6 @@ export function AccountFormModal({ open, onClose, account }: Props) {
       setAccessKey('');
       setSecretKey('');
       setDefaultRegion('us-east-1');
-      setGroup('');
       setNote('');
       setPinnedRegion('');
     }
@@ -131,7 +126,6 @@ export function AccountFormModal({ open, onClose, account }: Props) {
         await updateAccount(account.id, {
           alias,
           defaultRegion,
-          group: group || undefined,
           note: note || undefined,
           pinnedRegion: pinnedRegion || null,
           accessKey: credsProvided ? accessKey : undefined,
@@ -144,7 +138,6 @@ export function AccountFormModal({ open, onClose, account }: Props) {
           accessKey,
           secretKey,
           defaultRegion,
-          group: group || undefined,
           note: note || undefined,
           pinnedRegion: pinnedRegion || null,
           verified,
@@ -274,34 +267,6 @@ export function AccountFormModal({ open, onClose, account }: Props) {
           </span>
         </div>
 
-        {groups.length > 0 && (
-          <div>
-            <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-[var(--color-fg-secondary)]">
-              分组 (可选)
-            </span>
-            <span className="glass-input flex items-center gap-2 px-3 h-10">
-              <Layers size={14} className="text-[var(--color-fg-muted)]" />
-              <select
-                value={group}
-                onChange={(e) => setGroup(e.target.value)}
-                className="flex-1 bg-transparent border-0 text-sm outline-none"
-              >
-                <option value="" className="bg-[var(--color-bg-deep)]">未分组</option>
-                {groups.map((g) => (
-                  <option key={g.name} value={g.name} className="bg-[var(--color-bg-deep)]">
-                    {g.name}
-                  </option>
-                ))}
-                {/* Orphan: the account's current group string no longer exists */}
-                {group && !groups.some((g) => g.name === group) && (
-                  <option value={group} className="bg-[var(--color-bg-deep)]">
-                    {group} (已删除)
-                  </option>
-                )}
-              </select>
-            </span>
-          </div>
-        )}
 
         <Input
           label="备注 (可选)"

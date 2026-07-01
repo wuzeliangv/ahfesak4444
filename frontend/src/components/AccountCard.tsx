@@ -189,12 +189,6 @@ export function AccountCard({
       {/* ----- Body ----- */}
       <div className="mt-2 space-y-0.5 text-sm leading-tight">
         <p className="flex items-center gap-1.5 text-[var(--color-fg-muted)]">
-          分组
-          <span className="truncate text-[var(--color-fg-secondary)]">
-            {account.group || ''}
-          </span>
-        </p>
-        <p className="flex items-center gap-1.5 text-[var(--color-fg-muted)]">
           备注
           <span className="truncate text-[var(--color-fg-secondary)]">
             {account.note || ''}

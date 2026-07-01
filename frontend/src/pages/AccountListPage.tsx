@@ -22,7 +22,6 @@ import { Header } from '@/components/Header';
 import { AccountCard } from '@/components/AccountCard';
 import { AccountFormModal } from '@/components/AccountFormModal';
 import { BulkAddModal } from '@/components/BulkAddModal';
-import { GroupModal } from '@/components/GroupModal';
 import { Button } from '@/components/ui/Button';
 import { toast } from '@/lib/toast';
 
@@ -36,7 +35,6 @@ export function AccountListPage() {
   const [editing, setEditing] = useState<AccountRecord | undefined>(undefined);
   const [adding, setAdding] = useState(false);
   const [bulkAdding, setBulkAdding] = useState(false);
-  const [managingGroups, setManagingGroups] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [query, setQuery] = useState('');
   const [refreshingQuotas, setRefreshingQuotas] = useState(false);
@@ -103,7 +101,6 @@ export function AccountListPage() {
           accessKey: creds.accessKey,
           secretKey: creds.secretKey,
           defaultRegion: acc.defaultRegion,
-          group: acc.group ?? null,
           note: acc.note ?? null,
           color: acc.color ?? null,
           pinnedRegion: acc.pinnedRegion ?? null,
@@ -191,7 +188,6 @@ export function AccountListPage() {
         onExport={exportSelected}
         onImport={triggerImport}
         onRefreshAllQuotas={refreshAllQuotas}
-        onOpenGroups={() => setManagingGroups(true)}
         search={query}
         onSearchCommit={setQuery}
       />
@@ -248,7 +244,6 @@ export function AccountListPage() {
         onClose={() => setEditing(undefined)}
       />
       <BulkAddModal open={bulkAdding} onClose={() => setBulkAdding(false)} />
-      <GroupModal open={managingGroups} onClose={() => setManagingGroups(false)} />
     </div>
   );
 }
