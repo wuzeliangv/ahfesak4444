@@ -82,6 +82,7 @@ export function OrganizationsPage() {
   // Key generation states
   const [generatingKeyId, setGeneratingKeyId] = useState<string | null>(null);
   const [closingAccountId, setClosingAccountId] = useState<string | null>(null);
+  const [confirmCloseData, setConfirmCloseData] = useState<{ id: string; name: string } | null>(null);
   const [exportedKeysText, setExportedKeysText] = useState('');
   const [showExportModal, setShowExportModal] = useState(false);
 
@@ -339,18 +340,15 @@ export function OrganizationsPage() {
   };
 
   // Close member account manually
-  const handleCloseAccount = async (subAccountId: string, accountName: string) => {
-    if (!selectedAccountId) return;
-    const confirmed = window.confirm(
-      `⚠️⚠️⚠️ 警告：确定要关闭子账号「${accountName} (${subAccountId})」吗？\n\n该操作将直接关闭该 AWS 账号并终止其所有服务，属于高风险不可逆操作，请务必谨慎确认！`
-    );
-    if (!confirmed) return;
-
+  const handleConfirmCloseAccount = async () => {
+    if (!selectedAccountId || !confirmCloseData) return;
+    const { id: subAccountId, name: accountName } = confirmCloseData;
+    setConfirmCloseData(null);
     setClosingAccountId(subAccountId);
     try {
       const creds = await getAccountCredentials(selectedAccountId);
       await api.orgAccountsClose(creds, subAccountId);
-      toast.success(`子账号 ${accountName} 关闭申请提交成功！`);
+      toast.success(`子账号 ${accountName} 关闭申请已提交成功！`);
       
       // Refresh list
       fetchOrgDetails(selectedAccountId);
@@ -709,8 +707,8 @@ export function OrganizationsPage() {
                                   )}
                                   生成/导出密钥
                                 </Button>
-                                <Button
-                                  onClick={() => handleCloseAccount(acc.id, acc.name)}
+                                 <Button
+                                  onClick={() => setConfirmCloseData({ id: acc.id, name: acc.name })}
                                   disabled={generatingKeyId === acc.id || closingAccountId === acc.id}
                                   variant="danger"
                                   size="sm"
@@ -1008,6 +1006,62 @@ export function OrganizationsPage() {
               >
                 <FileDown size={13} />
                 下载 txt
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ---------- CONFIRM CLOSE ACCOUNT MODAL ---------- */}
+      {confirmCloseData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="glass-panel w-full max-w-md p-5 flex flex-col space-y-4 animate-in zoom-in-95 duration-200 border border-red-500/20">
+            <div className="flex items-center justify-between border-b border-red-500/10 pb-2">
+              <span className="text-sm font-bold text-red-400 flex items-center gap-1.5">
+                <XCircle size={16} className="text-red-400" />
+                关闭子账号确认
+              </span>
+              <button
+                onClick={() => setConfirmCloseData(null)}
+                className="text-xs text-[var(--color-fg-muted)] hover:text-red-400"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div className="p-3 bg-red-500/5 border border-red-500/10 rounded-lg text-xs leading-relaxed text-red-300">
+                ⚠️ <b>警告：该操作将直接发起 AWS 子账号关闭请求，终止其名下所有正在运行的资源与服务，且此操作不可逆！</b>
+              </div>
+              
+              <div className="space-y-1.5">
+                <span className="text-[10px] text-[var(--color-fg-muted)] uppercase block">要关闭的子账号</span>
+                <div className="p-3 rounded-lg bg-white/[0.02] border border-white/5 space-y-1">
+                  <div className="text-xs font-semibold text-[var(--color-fg-primary)]">
+                    {confirmCloseData.name}
+                  </div>
+                  <div className="text-[10px] font-mono text-[var(--color-fg-muted)]">
+                    ID: {confirmCloseData.id}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-2 justify-end border-t border-white/5 pt-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setConfirmCloseData(null)}
+              >
+                取消
+              </Button>
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={handleConfirmCloseAccount}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                确定关闭该账号
               </Button>
             </div>
           </div>
