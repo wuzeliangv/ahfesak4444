@@ -65,7 +65,7 @@ export function Button({
     <button
       data-loading={loading ? 'true' : undefined}
       className={clsx(
-        'inline-flex items-center justify-center gap-2 rounded-xl font-medium',
+        'inline-flex items-center justify-center gap-2 rounded-xl font-medium whitespace-nowrap shrink-0',
         'transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-500)]/60',
         sizes[size],

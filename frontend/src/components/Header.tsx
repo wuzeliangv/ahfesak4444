@@ -16,7 +16,6 @@
 
 import { useEffect, useState } from 'react';
 import {
-  Lock,
   Plus,
   Sun,
   Moon,
@@ -34,7 +33,6 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { Button } from './ui/Button';
 import { Logo } from './ui/Logo';
-import { lockVault } from '@/lib/vault';
 import { useTheme } from '@/hooks/useTheme';
 
 interface Props {
@@ -229,9 +227,6 @@ export function Header({
           className="!size-8 !p-0"
         >
           {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
-        </Button>
-        <Button variant="ghost" onClick={lockVault} leadingIcon={<Lock size={14} />} size="sm">
-          退出
         </Button>
       </div>
     </header>
