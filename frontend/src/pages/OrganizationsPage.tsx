@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft,
   Building2,
@@ -24,7 +24,7 @@ import { api } from '@/lib/api';
 import type { OrgAccountData } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { usePageTitle } from '@/hooks/usePageTitle';
-import { listAccounts, getAccountCredentials } from '@/lib/vault';
+import { listAccounts, getAccountCredentials, updateAccount } from '@/lib/vault';
 
 
 interface CreateTask {
@@ -44,6 +44,7 @@ interface CreateTask {
 export function OrganizationsPage() {
   usePageTitle('组织与子账号');
   const navigate = useNavigate();
+  const qc = useQueryClient();
 
   // Load imported account IDs for the Org page from localStorage
   const [importedIds, setImportedIds] = useState<string[]>(() => {
@@ -62,6 +63,7 @@ export function OrganizationsPage() {
 
   const [selectedAccountId, setSelectedAccountId] = useState<string>('');
   const [loadingStatus, setLoadingStatus] = useState(false);
+  const [convertingRoot, setConvertingRoot] = useState(false);
   const [hasQueried, setHasQueried] = useState(false);
   const [orgInfo, setOrgInfo] = useState<any>(null);
   const [subAccounts, setSubAccounts] = useState<OrgAccountData[]>([]);
@@ -131,6 +133,40 @@ export function OrganizationsPage() {
       toast.error((e as Error).message || '获取组织信息失败');
     } finally {
       setLoadingStatus(false);
+    }
+  };
+
+  // Trigger converting Root keys to IAM admin user
+  const handleConvertRootToIam = async () => {
+    if (!selectedAccountId) return;
+    setConvertingRoot(true);
+    try {
+      const creds = await getAccountCredentials(selectedAccountId);
+      const res = await api.orgCreateMasterIam(creds);
+
+      const account = allAccounts.find((a) => a.id === selectedAccountId);
+      if (account) {
+        await updateAccount(selectedAccountId, {
+          accessKey: res.access_key,
+          secretKey: res.secret_key,
+          verified: account.verified
+            ? {
+                ...account.verified,
+                akPrefix: res.access_key.slice(0, 8),
+                isRoot: false,
+              }
+            : undefined,
+        });
+        qc.invalidateQueries({ queryKey: ['accounts'] });
+        toast.success(`成功在主账号内生成并自动切换至 IAM 账号: ${res.user_name}`);
+
+        // Re-query org details
+        await fetchOrgDetails(selectedAccountId);
+      }
+    } catch (e) {
+      toast.error((e as Error).message || '创建并切换 IAM 用户失败');
+    } finally {
+      setConvertingRoot(false);
     }
   };
 
@@ -263,26 +299,6 @@ export function OrganizationsPage() {
             idx === i ? { ...t, status: 'ok', accountId: newAccountId } : t
           )
         );
-
-        try {
-          const keyData = await api.orgAccountsCreateKeys(creds, { subAccountId: newAccountId });
-          setCreateTasks((prev) =>
-            prev.map((t, idx) =>
-              idx === i
-                ? {
-                    ...t,
-                    adminKeys: {
-                      access_key: keyData.access_key,
-                      secret_key: keyData.secret_key,
-                      user_name: keyData.user_name,
-                    },
-                  }
-                : t
-            )
-          );
-        } catch (keyErr) {
-          toast.warning(`账号 ${task.name} 密钥生成失败: ${(keyErr as Error).message}`);
-        }
 
       } catch (err) {
         setCreateTasks((prev) =>
@@ -517,7 +533,6 @@ export function OrganizationsPage() {
                       )}
                     </div>
 
-                    {/* Action if organization not enabled */}
                     {!orgInfo.in_use && (
                       <div className="mt-4 p-4 rounded-xl bg-amber-500/5 border border-amber-500/10 space-y-3">
                         <p className="text-xs text-amber-300 leading-relaxed">
@@ -529,6 +544,22 @@ export function OrganizationsPage() {
                           onClick={handleCreateOrg}
                         >
                           <Building2 size={14} /> 一键启用 AWS 组织
+                        </Button>
+                      </div>
+                    )}
+
+                    {orgInfo.is_root && (
+                      <div className="mt-4 p-4 rounded-xl bg-red-500/5 border border-red-500/10 space-y-3">
+                        <p className="text-xs text-red-300 leading-relaxed">
+                          ⚠️ <b>检测到当前使用的是 Root 账号密钥。</b>由于 AWS 限制，Root 密钥无法扮演角色为子账号导出密钥。
+                        </p>
+                        <Button
+                          variant="primary"
+                          className="w-full flex justify-center items-center gap-1.5 bg-gradient-to-r from-amber-600 to-orange-600 hover:brightness-110 border border-amber-500/20"
+                          onClick={handleConvertRootToIam}
+                          loading={convertingRoot}
+                        >
+                          👑 一键创建并切换为 IAM 密钥
                         </Button>
                       </div>
                     )}

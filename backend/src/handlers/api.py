@@ -676,6 +676,11 @@ def _route_org_accounts_create_keys(body: dict[str, Any]) -> dict[str, Any]:
     return organizations.create_sub_account_admin_keys(creds, sub_account_id, admin_user_name)
 
 
+def _route_org_create_master_iam(body: dict[str, Any]) -> dict[str, Any]:
+    creds = extract_creds(body)
+    return organizations.create_master_iam_admin(creds)
+
+
 # ---------------------------------------------------------------------------
 # Routing table
 # ---------------------------------------------------------------------------
@@ -735,6 +740,7 @@ ROUTES: dict[tuple[str, str], tuple[Callable[[dict[str, Any]], dict[str, Any]], 
     ("POST", "/org/accounts/create"): (_route_org_accounts_create, True),
     ("POST", "/org/accounts/status"): (_route_org_accounts_status, True),
     ("POST", "/org/accounts/create-keys"): (_route_org_accounts_create_keys, True),
+    ("POST", "/org/create-master-iam"): (_route_org_create_master_iam, True),
 }
 
 

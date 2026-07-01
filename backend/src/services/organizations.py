@@ -15,6 +15,8 @@ def get_org_status(creds: Creds) -> dict[str, Any]:
     try:
         caller = sts_client.get_caller_identity()
         caller_account = caller["Account"]
+        arn = caller.get("Arn", "")
+        is_root = arn.endswith(":root")
     except ClientError as e:
         raise InvalidCredentials("AWS 凭证失效，获取调用者身份失败") from e
 
@@ -31,6 +33,7 @@ def get_org_status(creds: Creds) -> dict[str, Any]:
             "master_account_id": master_account,
             "feature_set": org.get("FeatureSet"),
             "caller_account_id": caller_account,
+            "is_root": is_root,
         }
     except ClientError as e:
         code = e.response.get("Error", {}).get("Code", "Unknown")
@@ -39,6 +42,7 @@ def get_org_status(creds: Creds) -> dict[str, Any]:
                 "in_use": False,
                 "is_management": False,
                 "caller_account_id": caller_account,
+                "is_root": is_root,
             }
         raise UpstreamError(f"获取组织状态失败: {code}") from e
 
@@ -209,3 +213,58 @@ def create_sub_account_admin_keys(creds: Creds, sub_account_id: str, admin_user_
         code = e.response.get("Error", {}).get("Code", "Unknown")
         msg = e.response.get("Error", {}).get("Message", str(e))
         raise UpstreamError(f"在子账号中生成 Access Key 失败: {code} - {msg}") from e
+
+def create_master_iam_admin(creds: Creds, admin_user_name: str = "aws-panel-org-admin") -> dict[str, Any]:
+    """Create an IAM admin user in the master account and generate access keys."""
+    sts = get_client(creds, "sts", "us-east-1")
+    try:
+        caller = sts.get_caller_identity()
+        caller_account = caller["Account"]
+    except ClientError as e:
+        raise UpstreamError(f"获取身份信息失败: {e}")
+
+    iam = get_client(creds, "iam", "us-east-1")
+    
+    # Check if admin user exists, create if not
+    user_exists = True
+    try:
+        iam.get_user(UserName=admin_user_name)
+    except ClientError as e:
+        if e.response.get("Error", {}).get("Code") == "NoSuchEntity":
+            user_exists = False
+        else:
+            raise UpstreamError(f"在主账号中查询 IAM 用户失败: {e}")
+
+    if not user_exists:
+        try:
+            iam.create_user(UserName=admin_user_name)
+            # Attach AdministratorAccess
+            iam.attach_user_policy(
+                UserName=admin_user_name,
+                PolicyArn="arn:aws:iam::aws:policy/AdministratorAccess"
+            )
+        except ClientError as e:
+            raise UpstreamError(f"在主账号中创建管理员用户或附加策略失败: {e}")
+
+    # Ensure key limit
+    try:
+        keys_resp = iam.list_access_keys(UserName=admin_user_name)
+        keys = keys_resp.get("AccessKeyMetadata", [])
+        if len(keys) >= 2:
+            oldest_key = min(keys, key=lambda k: k["CreateDate"])
+            iam.delete_access_key(UserName=admin_user_name, AccessKeyId=oldest_key["AccessKeyId"])
+    except ClientError as e:
+        raise UpstreamError(f"在主账号中清理旧密钥失败: {e}")
+
+    # Create new access key
+    try:
+        key_resp = iam.create_access_key(UserName=admin_user_name)
+        ak_data = key_resp.get("AccessKey") or {}
+        return {
+            "access_key": ak_data.get("AccessKeyId"),
+            "secret_key": ak_data.get("SecretAccessKey"),
+            "user_name": admin_user_name,
+            "account_id": caller_account,
+        }
+    except ClientError as e:
+        raise UpstreamError(f"在主账号中生成 Access Key 失败: {e}")

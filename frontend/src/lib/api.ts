@@ -102,6 +102,7 @@ export interface OrgStatusData {
   master_account_id?: string;
   feature_set?: string;
   caller_account_id: string;
+  is_root: boolean;
 }
 
 export interface OrgCreateData {
@@ -1491,6 +1492,12 @@ export const api = {
   orgAccountsCreateKeys: (creds: AccountCredentials, arg: { subAccountId: string; adminUserName?: string }, signal?: AbortSignal) =>
     call<OrgAccountCreateKeysData>('/org/accounts/create-keys', {
       body: withCreds(creds, { sub_account_id: arg.subAccountId, admin_user_name: arg.adminUserName || 'admin' }),
+      signal,
+    }),
+
+  orgCreateMasterIam: (creds: AccountCredentials, signal?: AbortSignal) =>
+    call<OrgAccountCreateKeysData>('/org/create-master-iam', {
+      body: withCreds(creds),
       signal,
     }),
 };
