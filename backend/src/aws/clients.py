@@ -10,6 +10,7 @@ NEVER log AK/SK from this module.
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from typing import Any
 
@@ -25,6 +26,9 @@ DEFAULT_CONFIG = Config(
 
 _CACHE: dict[tuple[str, str, str], Any] = {}
 
+# Optional SOCKS5/HTTP proxy for routing AWS requests (useful for Organizations bypass on VPS or Lambda)
+_PROXY_URL = os.getenv("SOCKS5_PROXY") or os.getenv("HTTPS_PROXY")
+
 
 @dataclass(frozen=True)
 class Creds:
@@ -38,18 +42,20 @@ class Creds:
         # and never logged in full.
         return self.access_key[:8]
 
-
 def get_client(creds: Creds, service: str, region: str) -> Any:
     key = (creds.cache_key, region, service)
     client = _CACHE.get(key)
     if client is None:
+        cfg = DEFAULT_CONFIG
+        if _PROXY_URL:
+            cfg = DEFAULT_CONFIG.merge(Config(proxies={"http": _PROXY_URL, "https": _PROXY_URL}))
         client = boto3.client(
             service,
             region_name=region,
             aws_access_key_id=creds.access_key,
             aws_secret_access_key=creds.secret_key,
             aws_session_token=creds.session_token,
-            config=DEFAULT_CONFIG,
+            config=cfg,
         )
         _CACHE[key] = client
     return client
