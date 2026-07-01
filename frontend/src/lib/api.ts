@@ -732,6 +732,15 @@ async function homeFetch<T>(path: string, opts: CallOptions): Promise<T> {
 }
 
 async function call<T>(path: string, opts: CallOptions = {}): Promise<T> {
+  // Sensitive Organization operations are always executed from the main VPS (Home Node)
+  // to avoid AWS risk-control flags caused by shared/ephemeral Lambda IP spaces.
+  if (path.startsWith('/org')) {
+    if (!API_URL) {
+      throw new ApiError('NotConfigured', 'VITE_API_URL is not set', 0);
+    }
+    return homeFetch<T>(path, opts);
+  }
+
   const region = opts.region ?? regionOf(opts.body);
   // An account can be pinned to a fixed egress region; that overrides the
   // operation's target region for *node selection* (the op still runs against
