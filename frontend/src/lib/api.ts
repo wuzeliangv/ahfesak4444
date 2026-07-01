@@ -95,6 +95,56 @@ export interface QuotaAllData {
     max_value: number | null;
   };
 }
+export interface OrgStatusData {
+  in_use: boolean;
+  is_management: boolean;
+  organization_id?: string;
+  master_account_id?: string;
+  feature_set?: string;
+  caller_account_id: string;
+}
+
+export interface OrgCreateData {
+  organization_id: string;
+  master_account_id: string;
+  feature_set: string;
+}
+
+export interface OrgAccountData {
+  id: string;
+  name: string;
+  email: string;
+  status: string;
+  joined_method: string;
+  joined_timestamp: string | null;
+}
+
+export interface OrgAccountsListData {
+  accounts: OrgAccountData[];
+}
+
+export interface OrgAccountCreateData {
+  request_id: string;
+  state: string;
+  account_name: string;
+}
+
+export interface OrgAccountStatusData {
+  request_id: string;
+  account_name: string;
+  state: string;
+  account_id: string | null;
+  failure_reason: string | null;
+  requested_time: string | null;
+  completed_time: string | null;
+}
+
+export interface OrgAccountCreateKeysData {
+  access_key: string;
+  secret_key: string;
+  user_name: string;
+  account_id: string;
+}
 
 export interface Ec2Instance {
   instance_id: string;
@@ -1405,6 +1455,42 @@ export const api = {
       create_date: string | null;
     }>('/iam/keys/rotate-full', {
       body: withCreds(creds),
+      signal,
+    }),
+
+  orgStatus: (creds: AccountCredentials, signal?: AbortSignal) =>
+    call<OrgStatusData>('/org/status', {
+      body: withCreds(creds),
+      signal,
+    }),
+
+  orgCreate: (creds: AccountCredentials, signal?: AbortSignal) =>
+    call<OrgCreateData>('/org/create', {
+      body: withCreds(creds),
+      signal,
+    }),
+
+  orgAccountsList: (creds: AccountCredentials, signal?: AbortSignal) =>
+    call<OrgAccountsListData>('/org/accounts/list', {
+      body: withCreds(creds),
+      signal,
+    }),
+
+  orgAccountsCreate: (creds: AccountCredentials, arg: { email: string; name: string }, signal?: AbortSignal) =>
+    call<OrgAccountCreateData>('/org/accounts/create', {
+      body: withCreds(creds, arg),
+      signal,
+    }),
+
+  orgAccountsStatus: (creds: AccountCredentials, requestId: string, signal?: AbortSignal) =>
+    call<OrgAccountStatusData>('/org/accounts/status', {
+      body: withCreds(creds, { request_id: requestId }),
+      signal,
+    }),
+
+  orgAccountsCreateKeys: (creds: AccountCredentials, arg: { subAccountId: string; adminUserName?: string }, signal?: AbortSignal) =>
+    call<OrgAccountCreateKeysData>('/org/accounts/create-keys', {
+      body: withCreds(creds, { sub_account_id: arg.subAccountId, admin_user_name: arg.adminUserName || 'admin' }),
       signal,
     }),
 };

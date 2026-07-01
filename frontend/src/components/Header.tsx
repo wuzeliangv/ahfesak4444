@@ -30,6 +30,7 @@ import {
   Server,
   KeyRound,
   X,
+  Building2,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from './ui/Button';
@@ -216,6 +217,16 @@ export function Header({
           title="独立的批量密钥校验、轮换和额度查询工具"
         >
           密钥工具
+        </Button>
+
+        <Button
+          onClick={() => navigate('/org')}
+          leadingIcon={<Building2 size={14} />}
+          size="sm"
+          variant="ghost"
+          title="AWS 组织与子账号批量开户与密钥生成管理"
+        >
+          组织管理
         </Button>
 
         <span className="mx-1 h-5 w-px bg-[var(--color-border-glass)]" aria-hidden />

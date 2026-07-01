@@ -27,7 +27,7 @@ from typing import Any, Callable
 
 from src.services import accounts, ec2, lightsail, quota
 from src.services import billing, free_tier, regions_admin, zones, network
-from src.services import bedrock_info, iam_signin, key_rotate
+from src.services import bedrock_info, iam_signin, key_rotate, organizations
 from src.services.lightsail_traffic import query_instance_traffic as lightsail_traffic
 from src.services.traffic import query_instance_traffic
 from src.shared.auth import extract_creds, parse_body, require_api_key
@@ -641,6 +641,41 @@ def _route_iam_keys_rotate_full(body: dict[str, Any]) -> dict[str, Any]:
     return key_rotate.rotate_full(creds)
 
 
+def _route_org_status(body: dict[str, Any]) -> dict[str, Any]:
+    creds = extract_creds(body)
+    return organizations.get_org_status(creds)
+
+
+def _route_org_create(body: dict[str, Any]) -> dict[str, Any]:
+    creds = extract_creds(body)
+    return organizations.create_organization(creds)
+
+
+def _route_org_accounts_list(body: dict[str, Any]) -> dict[str, Any]:
+    creds = extract_creds(body)
+    return {"accounts": organizations.list_sub_accounts(creds)}
+
+
+def _route_org_accounts_create(body: dict[str, Any]) -> dict[str, Any]:
+    creds = extract_creds(body)
+    email = body.get("email")
+    name = body.get("name")
+    return organizations.create_sub_account(creds, email, name)
+
+
+def _route_org_accounts_status(body: dict[str, Any]) -> dict[str, Any]:
+    creds = extract_creds(body)
+    request_id = body.get("request_id")
+    return organizations.check_create_account_status(creds, request_id)
+
+
+def _route_org_accounts_create_keys(body: dict[str, Any]) -> dict[str, Any]:
+    creds = extract_creds(body)
+    sub_account_id = body.get("sub_account_id") or body.get("subAccountId")
+    admin_user_name = body.get("admin_user_name") or "admin"
+    return organizations.create_sub_account_admin_keys(creds, sub_account_id, admin_user_name)
+
+
 # ---------------------------------------------------------------------------
 # Routing table
 # ---------------------------------------------------------------------------
@@ -694,6 +729,12 @@ ROUTES: dict[tuple[str, str], tuple[Callable[[dict[str, Any]], dict[str, Any]], 
     ("POST", "/iam/keys/delete"): (_route_iam_keys_delete, True),
     ("POST", "/iam/keys/rotate-full"): (_route_iam_keys_rotate_full, True),
     ("POST", "/bedrock/info"): (_route_bedrock_info, True),
+    ("POST", "/org/status"): (_route_org_status, True),
+    ("POST", "/org/create"): (_route_org_create, True),
+    ("POST", "/org/accounts/list"): (_route_org_accounts_list, True),
+    ("POST", "/org/accounts/create"): (_route_org_accounts_create, True),
+    ("POST", "/org/accounts/status"): (_route_org_accounts_status, True),
+    ("POST", "/org/accounts/create-keys"): (_route_org_accounts_create_keys, True),
 }
 
 
